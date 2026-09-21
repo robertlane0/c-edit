@@ -18,13 +18,14 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | cell (SemiRefCell) | Assessed | migration | borrow rules → explicit docs | debug assert model |
 | arena/* | Characterized | migration | lifetimes; custom alloc | TBD |
 | buffer/* | Not assessed | migration | gap buffer invariants | TBD |
-| unicode/* | Not assessed | migration | tables; utf8 validation | TBD |
-| simd/* | Not assessed | migration | over-read discipline | TBD |
+| unicode/utf8 (decoder) | C validated | migration | WHATWG resync offsets | Rust vector parity |
+| simd (memchr2/memrchr2/memset) | C validated | migration | scalar first; SIMD needs benches | ports + guard-page tests |
+| path (normalize, unix) | C validated | migration | windows deferred to sys slice | unix vectors + extras |
 | icu | Not assessed | migration | generated tables | TBD |
 | framebuffer/tui/vt/input | Not assessed | migration | syscalls; concurrency | TBD |
 | sys (unix/windows) | Not assessed | migration | platform ABI | TBD |
 | document/bin/edit | Not assessed | migration | app wiring | TBD |
-| fuzzy/path | Not assessed | migration | icu dep; path normalize | TBD |
+| fuzzy/path | Not assessed | migration | icu dep; windows paths | TBD |
 
 ## Validated slices (this checkpoint)
 
@@ -32,6 +33,9 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - base64: 234 checks, port of Rust `test_basic` + binary/error paths, ASan/UBSan clean.
 - apperr/helpers: 68 checks, metric output verified equal to Rust, ASan/UBSan clean.
 - oklab: 101 checks, Lab/blend/round-trip vs Rust refs, ASan/UBSan clean.
+- simd: 3164 checks, ports of memchr2/memrchr2/memset tests + mmap guard pages, ASan/UBSan clean.
+- utf8: 301 checks, 24 Rust-vector sequences incl. resync offsets, ASan/UBSan clean.
+- path: 98 checks, unix vectors + 15 extras verified equal to Rust, ASan/UBSan clean.
 - Gates: strict warnings, cppcheck, clang-format, `cargo +nightly test --lib` green (37).
 
 ## Baseline perf
