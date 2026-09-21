@@ -16,7 +16,8 @@ jobs:
       - name: ASan+UBSan
         run: make asan
       - name: cppcheck
-        run: make cppcheck
+        run: sudo apt-get install cppcheck
+          make cppcheck
       - name: Format
         run: make format-check
       - name: Rust parity
