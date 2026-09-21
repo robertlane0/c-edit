@@ -35,8 +35,7 @@ uint64_t edit_hash(uint64_t seed, const uint8_t *data, size_t len) {
     static const uint64_t S3 = UINT64_C(0x589965cc75374cc3);
 
     if (len > 0 && data == NULL) {
-        assert(data != NULL);
-        return 0;
+        return 0; // invalid input, defined output
     }
     if (len == 0) {
         // Generic path below would call wyr3 with k=0; avoid it.

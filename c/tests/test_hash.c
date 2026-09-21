@@ -63,7 +63,7 @@ int main(void) {
     CHECK(edit_hash_str(0, "") == edit_hash(0, NULL, 0));
     CHECK(edit_hash_str(0, "abc") == edit_hash(0, (const uint8_t *)"abc", 3));
     CHECK(edit_hash_str(0, NULL) == edit_hash(0, NULL, 0));
-
+    CHECK(edit_hash(0, NULL, 5) == 0); // invalid input, defined output
     // Byte-wise determinism across boundary lengths.
     uint8_t buf[96];
     for (size_t i = 0; i < sizeof buf; ++i) {

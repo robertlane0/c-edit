@@ -1,6 +1,5 @@
 #include "edit/simd.h"
 
-#include <assert.h>
 #include <string.h>
 
 size_t edit_memchr2(uint8_t n1, uint8_t n2, const uint8_t *hay, size_t len, size_t offset) {
@@ -8,8 +7,7 @@ size_t edit_memchr2(uint8_t n1, uint8_t n2, const uint8_t *hay, size_t len, size
         return 0;
     }
     if (hay == NULL) {
-        assert(hay != NULL);
-        return len;
+        return len; // invalid input, defined output
     }
     size_t i = offset < len ? offset : len;
     while (i < len) {
@@ -25,7 +23,6 @@ size_t edit_memchr2(uint8_t n1, uint8_t n2, const uint8_t *hay, size_t len, size
 bool edit_memrchr2(uint8_t n1, uint8_t n2, const uint8_t *hay, size_t len, size_t offset,
                    size_t *out) {
     if (out == NULL) {
-        assert(out != NULL);
         return false;
     }
     *out = 0;
@@ -33,7 +30,6 @@ bool edit_memrchr2(uint8_t n1, uint8_t n2, const uint8_t *hay, size_t len, size_
         return false;
     }
     if (hay == NULL) {
-        assert(hay != NULL);
         return false;
     }
     size_t end = offset < len ? offset : len;
@@ -82,22 +78,14 @@ static void memset_raw_u64(uint8_t *beg, uint8_t *end, uint64_t v) {
 }
 
 void edit_memset_u8(uint8_t *dst, uint8_t v, size_t n) {
-    if (n == 0) {
-        return;
-    }
-    if (dst == NULL) {
-        assert(dst != NULL);
+    if (n == 0 || dst == NULL) {
         return;
     }
     memset(dst, v, n);
 }
 
 void edit_memset_u16(uint16_t *dst, uint16_t v, size_t n) {
-    if (n == 0) {
-        return;
-    }
-    if (dst == NULL) {
-        assert(dst != NULL);
+    if (n == 0 || dst == NULL) {
         return;
     }
     uint64_t w = (uint64_t)v * UINT64_C(0x0001000100010001);
@@ -105,11 +93,7 @@ void edit_memset_u16(uint16_t *dst, uint16_t v, size_t n) {
 }
 
 void edit_memset_u32(uint32_t *dst, uint32_t v, size_t n) {
-    if (n == 0) {
-        return;
-    }
-    if (dst == NULL) {
-        assert(dst != NULL);
+    if (n == 0 || dst == NULL) {
         return;
     }
     uint64_t w = (uint64_t)v * UINT64_C(0x0000000100000001);
@@ -117,11 +101,7 @@ void edit_memset_u32(uint32_t *dst, uint32_t v, size_t n) {
 }
 
 void edit_memset_u64(uint64_t *dst, uint64_t v, size_t n) {
-    if (n == 0) {
-        return;
-    }
-    if (dst == NULL) {
-        assert(dst != NULL);
+    if (n == 0 || dst == NULL) {
         return;
     }
     memset_raw_u64((uint8_t *)dst, (uint8_t *)(dst + n), v);

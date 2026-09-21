@@ -75,6 +75,16 @@ int main(void) {
     CHECK(check_memchr2('x', 'x', alpha43, 43, 0, 23) == 0);
     CHECK(check_memrchr2('x', 'x', alpha43, 43, 43, 1, 23) == 0);
 
+    // Invalid inputs have defined outputs.
+    CHECK(edit_memchr2('a', 'b', NULL, 10, 0) == 10);
+    size_t ridx = 7;
+    CHECK(!edit_memrchr2('a', 'b', NULL, 10, 10, &ridx) && ridx == 0);
+    CHECK(!edit_memrchr2('a', 'b', alpha43, 43, 43, NULL));
+    edit_memset_u8(NULL, 1, 5);
+    edit_memset_u16(NULL, 1, 5);
+    edit_memset_u32(NULL, 1, 5);
+    edit_memset_u64(NULL, 1, 5);
+
     // Port of Rust memset tests.
     uint8_t b8[1024];
     memset(b8, 0x55, sizeof b8);
