@@ -27,7 +27,7 @@ $(LIB): $(OBJ) | $(BUILD)
 	ar rcs $@ $(OBJ)
 
 $(BUILD)/test_%: c/tests/test_%.c $(LIB) | $(BUILD)
-	$(CC) $(CFLAGS) $< $(LIB) -lm -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) $< $(LIB) -lm -ldl -o $@ $(LDFLAGS)
 
 test: $(LIB) $(TEST_BIN)
 	set -e; for t in $(TEST_BIN); do echo "== $$t"; "$$t"; done
