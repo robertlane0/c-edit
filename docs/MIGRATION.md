@@ -26,6 +26,14 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | document/bin/edit | Not assessed | migration | app wiring | TBD |
 | fuzzy/path | Not assessed | migration | icu dep; path normalize | TBD |
 
+## Validated slices (this checkpoint)
+
+- hash: 117 checks, Rust differential vectors, ASan/UBSan clean.
+- base64: 234 checks, port of Rust `test_basic` + binary/error paths, ASan/UBSan clean.
+- apperr/helpers: 68 checks, metric output verified equal to Rust, ASan/UBSan clean.
+- oklab: 101 checks, Lab/blend/round-trip vs Rust refs, ASan/UBSan clean.
+- Gates: strict warnings, cppcheck, clang-format, `cargo +nightly test --lib` green (37).
+
 ## Baseline perf
 
 - Rust benchmarks in `benches/` via criterion; C benches pending.
