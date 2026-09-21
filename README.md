@@ -1,6 +1,12 @@
 # Edit
 
-A simple editor for simple needs.
+> **Fork Notice:** This is a fork of [Microsoft Edit](https://github.com/microsoft/edit) v1.0.0.
+> The latest upstream release is v2.0.0 with additional non-release development.
+> This repository is a C port of the original Rust application.
+
+A C port of a simple editor for simple needs.
+
+This is a C implementation that maintains compatibility with the original Microsoft Edit editor. It preserves the behavior and interface of the upstream Rust application while using a C toolchain and codebase.
 
 This editor pays homage to the classic [MS-DOS Editor](https://en.wikipedia.org/wiki/MS-DOS_Editor), but with a modern interface and input controls similar to VS Code. The goal is to provide an accessible editor that even users largely unfamiliar with terminals can easily use.
 
@@ -8,15 +14,14 @@ This editor pays homage to the classic [MS-DOS Editor](https://en.wikipedia.org/
 
 ## Installation
 
-* Download the latest release from our [releases page](https://github.com/microsoft/edit/releases/latest)
-* Extract the archive
+* Clone the repository
+* Build from source by following the Build Instructions below
 * Copy the `edit` binary to a directory in your `PATH`
-* You may delete any other files in the archive if you don't need them
 
 ## Build Instructions
 
-* [Install Rust](https://www.rust-lang.org/tools/install)
-* Install the nightly toolchain: `rustup install nightly`
-  * Alternatively, set the environment variable `RUSTC_BOOTSTRAP=1`
+* Install a C compiler (gcc, clang, or compatible)
+* Ensure you have make or your platform's equivalent build tool
 * Clone the repository
-* For a release build, run: `cargo build --config .cargo/release.toml --release`
+* Run: `make`
+* For a release build: `make release`
