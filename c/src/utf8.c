@@ -130,3 +130,35 @@ bool edit_utf8_next(edit_utf8_chars_t *it, uint32_t *out) {
     *out = cp;
     return true;
 }
+
+size_t edit_utf8_encode(uint32_t cp, char out[4]) {
+    if (out == NULL) {
+        return 0;
+    }
+    if (cp < 0x80U) {
+        out[0] = (char)cp;
+        return 1;
+    }
+    if (cp < 0x800U) {
+        out[0] = (char)(0xC0U | (cp >> 6U));
+        out[1] = (char)(0x80U | (cp & 0x3FU));
+        return 2;
+    }
+    if (cp < 0x10000U) {
+        if (cp >= 0xD800U && cp <= 0xDFFFU) {
+            return 0; // surrogates are not scalar values
+        }
+        out[0] = (char)(0xE0U | (cp >> 12U));
+        out[1] = (char)(0x80U | ((cp >> 6U) & 0x3FU));
+        out[2] = (char)(0x80U | (cp & 0x3FU));
+        return 3;
+    }
+    if (cp <= 0x10FFFFU) {
+        out[0] = (char)(0xF0U | (cp >> 18U));
+        out[1] = (char)(0x80U | ((cp >> 12U) & 0x3FU));
+        out[2] = (char)(0x80U | ((cp >> 6U) & 0x3FU));
+        out[3] = (char)(0x80U | (cp & 0x3FU));
+        return 4;
+    }
+    return 0;
+}

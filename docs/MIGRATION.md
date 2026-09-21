@@ -16,7 +16,8 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | helpers (metric/point/size/rect) | C validated | migration | overflow on rect math | geometry tests |
 | oklab (srgb/oklab/blend) | C validated | migration | float bit hacks; precision | round-trip + blend tests |
 | cell (SemiRefCell) | C validated | migration | header-only macro cells | borrow sequences |
-| arena (core+scratch) | C started | migration | string/vec pending; LIFO debug-only | alloc/grow/shrink/scratch tests |
+| arena (core+scratch) | C validated | migration | LIFO debug-only | alloc/grow/shrink/scratch tests |
+| arena (vec+string) | C validated | migration | generic macro vecs | Rust lossy parity |
 | sys (unix/vm) | C started | migration | vm done; rest pending | reserve/commit/release tests |
 | buffer/* | Not assessed | migration | gap buffer invariants | TBD |
 | unicode/utf8 (decoder) | C validated | migration | WHATWG resync offsets | Rust vector parity |
@@ -40,6 +41,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - cell: 11 checks, borrow sequences in debug + release builds.
 - vm: 4104 checks, reserve/commit/release incl. Sys(ENOMEM) failure parity.
 - arena: 141 checks, alloc/grow/shrink/reset/scratch + NDEBUG run, ASan/UBSan clean.
+- avec/astring: 349 checks, generic vec + string ops + lossy parity, ASan/UBSan/NDEBUG clean.
 - Policy: public arg validation returns errors gracefully (tested in debug);
   asserts kept only for usage-discipline invariants (borrow order, tail-only shrink).
 - Gates: strict warnings, cppcheck, clang-format, `cargo +nightly test --lib` green (37).

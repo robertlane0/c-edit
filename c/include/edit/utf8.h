@@ -27,6 +27,8 @@ bool edit_utf8_has_next(const edit_utf8_chars_t *it);
 void edit_utf8_seek(edit_utf8_chars_t *it, size_t offset);
 // Next codepoint (valid or FFFD); false when exhausted or on NULL args.
 bool edit_utf8_next(edit_utf8_chars_t *it, uint32_t *out);
+// Encodes cp as UTF-8 into out (4 bytes); returns length, 0 if invalid.
+size_t edit_utf8_encode(uint32_t cp, char out[4]);
 
 #ifdef __cplusplus
 }
