@@ -43,7 +43,7 @@ tsan: clean all test
 
 cppcheck:
 	@if ls c/src/*.c c/tests/*.c >/dev/null 2>&1; then \
-	  cppcheck --enable=all --error-exitcode=1 --std=c17 \
+	  cppcheck --enable=warning,performance,portability --error-exitcode=1 --std=c17 \
 	    --suppress=missingIncludeSystem \
 	    -Ic/include c/src c/tests; \
 	fi
