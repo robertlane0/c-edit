@@ -15,15 +15,16 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | apperr (Error) | C validated | migration | error mapping | mapping tests |
 | helpers (metric/point/size/rect) | C validated | migration | overflow on rect math | geometry tests |
 | oklab (srgb/oklab/blend) | C validated | migration | float bit hacks; precision | round-trip + blend tests |
-| cell (SemiRefCell) | Assessed | migration | borrow rules → explicit docs | debug assert model |
-| arena/* | Characterized | migration | lifetimes; custom alloc | TBD |
+| cell (SemiRefCell) | C validated | migration | header-only macro cells | borrow sequences |
+| arena (core+scratch) | C started | migration | string/vec pending; LIFO debug-only | alloc/grow/shrink/scratch tests |
+| sys (unix/vm) | C started | migration | vm done; rest pending | reserve/commit/release tests |
 | buffer/* | Not assessed | migration | gap buffer invariants | TBD |
 | unicode/utf8 (decoder) | C validated | migration | WHATWG resync offsets | Rust vector parity |
 | simd (memchr2/memrchr2/memset) | C validated | migration | scalar first; SIMD needs benches | ports + guard-page tests |
 | path (normalize, unix) | C validated | migration | windows deferred to sys slice | unix vectors + extras |
 | icu | Not assessed | migration | generated tables | TBD |
 | framebuffer/tui/vt/input | Not assessed | migration | syscalls; concurrency | TBD |
-| sys (unix/windows) | Not assessed | migration | platform ABI | TBD |
+| sys (rest: console, files, icu-load) | Not assessed | migration | platform ABI | TBD |
 | document/bin/edit | Not assessed | migration | app wiring | TBD |
 | fuzzy/path | Not assessed | migration | icu dep; windows paths | TBD |
 
@@ -36,6 +37,11 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - simd: 3164 checks, ports of memchr2/memrchr2/memset tests + mmap guard pages, ASan/UBSan clean.
 - utf8: 301 checks, 24 Rust-vector sequences incl. resync offsets, ASan/UBSan clean.
 - path: 98 checks, unix vectors + 15 extras verified equal to Rust, ASan/UBSan clean.
+- cell: 11 checks, borrow sequences in debug + release builds.
+- vm: 4104 checks, reserve/commit/release incl. Sys(ENOMEM) failure parity.
+- arena: 141 checks, alloc/grow/shrink/reset/scratch + NDEBUG run, ASan/UBSan clean.
+- Policy: public arg validation returns errors gracefully (tested in debug);
+  asserts kept only for usage-discipline invariants (borrow order, tail-only shrink).
 - Gates: strict warnings, cppcheck, clang-format, `cargo +nightly test --lib` green (37).
 
 ## Baseline perf
