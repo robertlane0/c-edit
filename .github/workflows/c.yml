@@ -1,0 +1,23 @@
+name: c
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: make
+      - name: Tests
+        run: make test
+      - name: ASan+UBSan
+        run: make asan
+      - name: cppcheck
+        run: make cppcheck
+      - name: Format
+        run: make format-check
+      - name: Rust parity
+        run: cargo +nightly test
