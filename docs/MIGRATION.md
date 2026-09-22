@@ -24,6 +24,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | fuzzy (scorer) | C validated | migration | dead Rust code, validated via scratch copy | 27 differential vectors |
 | sys (unix/vm) | C started | migration | vm done; rest pending | reserve/commit/release tests |
 | buffer (TextBuffer) | Not assessed | migration | undo/redo, regex search | TBD |
+| buffer (tbuf core) | C validated | migration | cursor/history/edit/undo | scripted Rust parity |
 | buffer (nav) | C validated | migration | differential tables | Rust unit port + select |
 | buffer (gap) | C validated | migration | VM + heap backings | ops/copy/nav integration |
 | unicode (utf8 decoder) | C validated | migration | WHATWG resync offsets | Rust vector parity |
@@ -59,6 +60,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - measure: 100 checks, all 15 Rust tests ported, ASan/NDEBUG clean.
 - vt: 225 checks, differential token streams incl. chunk splits, ASan/NDEBUG clean.
 - uregex: 53 checks, UText provider + search over gap buffer, ASan/NDEBUG clean.
+- tbuf: 172 checks, scripted edit/undo/cursor/newline parity, ASan/NDEBUG clean.
 - Policy: public arg validation returns errors gracefully (tested in debug);
   asserts kept only for usage-discipline invariants (borrow order, tail-only shrink).
 - Gates: strict warnings, cppcheck, clang-format, `cargo +nightly test --lib` green (37).
