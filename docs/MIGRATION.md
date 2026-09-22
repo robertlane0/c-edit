@@ -30,7 +30,8 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | simd (memchr2/memrchr2/memset) | C validated | migration | scalar first; SIMD needs benches | ports + guard-page tests |
 | path (normalize, unix) | C validated | migration | windows deferred to sys slice | unix vectors + extras |
 | icu (converters/regex/collation) | Not assessed | migration | dlopen FFI surface | TBD |
-| framebuffer/tui/vt/input | Not assessed | migration | syscalls; concurrency | TBD |
+| framebuffer/tui/input | Not assessed | migration | syscalls; concurrency | TBD |
+| vt (parser) | C validated | migration | DCS quirk mirrored | differential streams |
 | sys (rest: console, files, icu-load) | Not assessed | migration | platform ABI | TBD |
 | document (traits) | C validated | migration | vtable + slice doc | interface tests |
 | fuzzy (windows paths) | Not assessed | migration | needs sys slice | TBD |
@@ -54,6 +55,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - gap: 152 checks, small+large backings, copy/nav integration, ASan/NDEBUG clean.
 - ucd: 47 checks, tables bit-identical to Rust, ASan/NDEBUG clean.
 - measure: 100 checks, all 15 Rust tests ported, ASan/NDEBUG clean.
+- vt: 225 checks, differential token streams incl. chunk splits, ASan/NDEBUG clean.
 - Policy: public arg validation returns errors gracefully (tested in debug);
   asserts kept only for usage-discipline invariants (borrow order, tail-only shrink).
 - Gates: strict warnings, cppcheck, clang-format, `cargo +nightly test --lib` green (37).
