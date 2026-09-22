@@ -31,6 +31,8 @@ typedef icu_collator_t *(*icu_colopen_fn)(const char *, int32_t *);
 typedef int32_t (*icu_collate_fn)(const icu_collator_t *, const char *, int32_t, const char *,
                                   int32_t, int32_t *);
 
+#include "icu_priv.h"
+
 static void *s_uc = NULL;
 static void *s_i18n = NULL;
 static char s_suffix[32] = {0};
@@ -47,6 +49,16 @@ static icu_errname_fn s_errname = NULL;
 static icu_collator_t *s_collator = NULL;
 static icu_colopen_fn s_colopen = NULL;
 static icu_collate_fn s_collate = NULL;
+icu_utextsetup_fn icu_utextsetup = NULL;
+icu_utextclose_fn icu_utextclose = NULL;
+icu_rxopen_fn icu_rxopen = NULL;
+icu_rxclose_fn icu_rxclose = NULL;
+icu_rxtime_fn icu_rxtime = NULL;
+icu_rxtext_fn icu_rxtext = NULL;
+icu_rxreset_fn icu_rxreset = NULL;
+icu_rxnext_fn icu_rxnext = NULL;
+icu_rxstart_fn icu_rxstart = NULL;
+icu_rxend_fn icu_rxend = NULL;
 
 // POSIX allows void* -> function pointer via memcpy (ISO C forbids casts).
 static bool lookup(void *handle, void *slot, const char *base) {
@@ -130,8 +142,17 @@ static bool icu_load(void) {
         !lookup(s_uc, &s_available, "ucnv_getAvailableName") ||
         !lookup(s_uc, &s_cnvopen, "ucnv_open") || !lookup(s_uc, &s_cnvclose, "ucnv_close") ||
         !lookup(s_uc, &s_convert, "ucnv_convertEx") || !lookup(s_uc, &s_errname, "u_errorName") ||
-        !lookup(s_i18n, &s_colopen, "ucol_open") ||
-        !lookup(s_i18n, &s_collate, "ucol_strcollUTF8")) {
+        !lookup(s_uc, &icu_utextsetup, "utext_setup") ||
+        !lookup(s_uc, &icu_utextclose, "utext_close") || !lookup(s_i18n, &s_colopen, "ucol_open") ||
+        !lookup(s_i18n, &s_collate, "ucol_strcollUTF8") ||
+        !lookup(s_i18n, &icu_rxopen, "uregex_open") ||
+        !lookup(s_i18n, &icu_rxclose, "uregex_close") ||
+        !lookup(s_i18n, &icu_rxtime, "uregex_setTimeLimit") ||
+        !lookup(s_i18n, &icu_rxtext, "uregex_setUText") ||
+        !lookup(s_i18n, &icu_rxreset, "uregex_reset64") ||
+        !lookup(s_i18n, &icu_rxnext, "uregex_findNext") ||
+        !lookup(s_i18n, &icu_rxstart, "uregex_start64") ||
+        !lookup(s_i18n, &icu_rxend, "uregex_end64")) {
         return false;
     }
     int32_t status = ICU_ZERO_ERROR;
@@ -151,6 +172,10 @@ static bool icu_load(void) {
 }
 
 bool edit_icu_available(void) {
+    return icu_load();
+}
+
+bool icu_full_load(void) {
     return icu_load();
 }
 
