@@ -18,16 +18,18 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | cell (SemiRefCell) | C validated | migration | header-only macro cells | borrow sequences |
 | arena (core+scratch) | C validated | migration | LIFO debug-only | alloc/grow/shrink/scratch tests |
 | arena (vec+string) | C validated | migration | generic macro vecs | Rust lossy parity |
+| icu (fold+ascii cmp) | C validated | migration | dlopen + version suffix | ICU-backed vectors |
+| fuzzy (scorer) | C validated | migration | dead Rust code, validated via scratch copy | 27 differential vectors |
 | sys (unix/vm) | C started | migration | vm done; rest pending | reserve/commit/release tests |
 | buffer/* | Not assessed | migration | gap buffer invariants | TBD |
 | unicode/utf8 (decoder) | C validated | migration | WHATWG resync offsets | Rust vector parity |
 | simd (memchr2/memrchr2/memset) | C validated | migration | scalar first; SIMD needs benches | ports + guard-page tests |
 | path (normalize, unix) | C validated | migration | windows deferred to sys slice | unix vectors + extras |
-| icu | Not assessed | migration | generated tables | TBD |
+| icu (converters/regex/collation) | Not assessed | migration | dlopen FFI surface | TBD |
 | framebuffer/tui/vt/input | Not assessed | migration | syscalls; concurrency | TBD |
 | sys (rest: console, files, icu-load) | Not assessed | migration | platform ABI | TBD |
 | document/bin/edit | Not assessed | migration | app wiring | TBD |
-| fuzzy/path | Not assessed | migration | icu dep; windows paths | TBD |
+| fuzzy (windows paths) | Not assessed | migration | needs sys slice | TBD |
 
 ## Validated slices (this checkpoint)
 
@@ -42,6 +44,8 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - vm: 4104 checks, reserve/commit/release incl. Sys(ENOMEM) failure parity.
 - arena: 141 checks, alloc/grow/shrink/reset/scratch + NDEBUG run, ASan/UBSan clean.
 - avec/astring: 349 checks, generic vec + string ops + lossy parity, ASan/UBSan/NDEBUG clean.
+- icu: 65 checks, ICU-backed fold vectors + ascii collation port, ASan clean.
+- fuzzy: 144 checks, 27 differential vectors from scratch-wired Rust copy, ASan/NDEBUG clean.
 - Policy: public arg validation returns errors gracefully (tested in debug);
   asserts kept only for usage-discipline invariants (borrow order, tail-only shrink).
 - Gates: strict warnings, cppcheck, clang-format, `cargo +nightly test --lib` green (37).
