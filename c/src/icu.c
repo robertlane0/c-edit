@@ -10,23 +10,49 @@
 #include <string.h>
 #include <unistd.h>
 
-// Mirrors UErrorCode values (utypes.h); only these two are used here.
+// Mirrors UErrorCode values (utypes.h).
 #define ICU_ZERO_ERROR 0
 #define ICU_BUFFER_OVERFLOW_ERROR 15
 
 typedef struct icu_casemap icu_casemap_t;
+typedef struct icu_converter icu_converter_t;
+typedef struct icu_collator icu_collator_t;
 typedef icu_casemap_t *(*icu_open_fn)(const char *, uint32_t, int32_t *);
 typedef int32_t (*icu_fold_fn)(const icu_casemap_t *, char *, int32_t, const char *, int32_t,
                                int32_t *);
+typedef char *(*icu_available_fn)(int32_t);
+typedef icu_converter_t *(*icu_cnvopen_fn)(const char *, int32_t *);
+typedef void (*icu_cnvclose_fn)(icu_converter_t *);
+typedef void (*icu_convert_fn)(icu_converter_t *, icu_converter_t *, char **, const char *,
+                               const char **, const char *, uint16_t *, uint16_t **, uint16_t **,
+                               const uint16_t *, bool, bool, int32_t *);
+typedef const char *(*icu_errname_fn)(int32_t);
+typedef icu_collator_t *(*icu_colopen_fn)(const char *, int32_t *);
+typedef int32_t (*icu_collate_fn)(const icu_collator_t *, const char *, int32_t, const char *,
+                                  int32_t, int32_t *);
 
-static void *s_handle = NULL;
+static void *s_uc = NULL;
+static void *s_i18n = NULL;
+static char s_suffix[32] = {0};
+static bool s_tried = false;
+static bool s_ready = false;
+
 static icu_casemap_t *s_casemap = NULL;
 static icu_fold_fn s_fold = NULL;
-static bool s_tried = false;
+static icu_available_fn s_available = NULL;
+static icu_cnvopen_fn s_cnvopen = NULL;
+static icu_cnvclose_fn s_cnvclose = NULL;
+static icu_convert_fn s_convert = NULL;
+static icu_errname_fn s_errname = NULL;
+static icu_collator_t *s_collator = NULL;
+static icu_colopen_fn s_colopen = NULL;
+static icu_collate_fn s_collate = NULL;
 
 // POSIX allows void* -> function pointer via memcpy (ISO C forbids casts).
-static bool lookup(void *slot, const char *name) {
-    void *sym = dlsym(s_handle, name);
+static bool lookup(void *handle, void *slot, const char *base) {
+    char name[64];
+    snprintf(name, sizeof name, "%s%s", base, s_suffix);
+    void *sym = dlsym(handle, name);
     if (sym == NULL) {
         return false;
     }
@@ -37,12 +63,12 @@ static bool lookup(void *slot, const char *name) {
 // ICU tags exported symbols with the major version (_78). Discover it like
 // Rust sys::unix::icu_proc_suffix: unversioned u_errorName? else derive from
 // the UCaseMap destructor's library path (...libicuuc.so.78.3 -> _78).
-static void discover_suffix(char *out, size_t cap) {
-    out[0] = '\0';
-    if (dlsym(s_handle, "u_errorName") != NULL) {
+static void discover_suffix(void) {
+    s_suffix[0] = '\0';
+    if (dlsym(s_uc, "u_errorName") != NULL) {
         return;
     }
-    void *proc = dlsym(s_handle, "_ZN8UCaseMapD1Ev");
+    void *proc = dlsym(s_uc, "_ZN8UCaseMapD1Ev");
     if (proc == NULL) {
         return;
     }
@@ -78,41 +104,49 @@ static void discover_suffix(char *out, size_t cap) {
     while (ver[vlen] >= '0' && ver[vlen] <= '9') {
         ++vlen;
     }
-    if (vlen == 0 || vlen + 2 > cap) {
+    if (vlen == 0 || vlen + 2 > sizeof s_suffix) {
         return;
     }
-    out[0] = '_';
-    memcpy(out + 1, ver, vlen);
-    out[vlen + 1] = '\0';
+    s_suffix[0] = '_';
+    memcpy(s_suffix + 1, ver, vlen);
+    s_suffix[vlen + 1] = '\0';
 }
 
+// All-or-nothing load, mirroring Rust init_if_needed.
 static bool icu_load(void) {
     if (s_tried) {
-        return s_casemap != NULL;
+        return s_ready;
     }
     s_tried = true;
-    s_handle = dlopen("libicuuc.so", RTLD_LAZY);
-    if (s_handle == NULL) {
+    s_uc = dlopen("libicuuc.so", RTLD_LAZY);
+    s_i18n = dlopen("libicui18n.so", RTLD_LAZY);
+    if (s_uc == NULL || s_i18n == NULL) {
         return false;
     }
-    char suffix[32];
-    discover_suffix(suffix, sizeof suffix);
-    char open_name[64];
-    char fold_name[64];
-    snprintf(open_name, sizeof open_name, "ucasemap_open%s", suffix);
-    snprintf(fold_name, sizeof fold_name, "ucasemap_utf8FoldCase%s", suffix);
-    icu_open_fn open_fn = NULL;
-    if (!lookup(&open_fn, open_name) || !lookup(&s_fold, fold_name)) {
-        s_fold = NULL;
+    discover_suffix();
+    icu_open_fn casemap_open = NULL;
+    if (!lookup(s_uc, &casemap_open, "ucasemap_open") ||
+        !lookup(s_uc, &s_fold, "ucasemap_utf8FoldCase") ||
+        !lookup(s_uc, &s_available, "ucnv_getAvailableName") ||
+        !lookup(s_uc, &s_cnvopen, "ucnv_open") || !lookup(s_uc, &s_cnvclose, "ucnv_close") ||
+        !lookup(s_uc, &s_convert, "ucnv_convertEx") || !lookup(s_uc, &s_errname, "u_errorName") ||
+        !lookup(s_i18n, &s_colopen, "ucol_open") ||
+        !lookup(s_i18n, &s_collate, "ucol_strcollUTF8")) {
         return false;
     }
     int32_t status = ICU_ZERO_ERROR;
-    s_casemap = open_fn(NULL, 0, &status);
+    s_casemap = casemap_open(NULL, 0, &status);
     if (s_casemap == NULL || status > ICU_ZERO_ERROR) {
         s_casemap = NULL;
-        s_fold = NULL;
         return false;
     }
+    status = ICU_ZERO_ERROR;
+    s_collator = s_colopen("", &status);
+    if (s_collator == NULL || status > ICU_ZERO_ERROR) {
+        s_collator = NULL;
+        return false;
+    }
+    s_ready = true;
     return true;
 }
 
@@ -223,4 +257,197 @@ int edit_compare_ascii(const uint8_t *a, size_t alen, const uint8_t *b, size_t b
         return 0;
     }
     return alen < blen ? -1 : 1;
+}
+
+int edit_compare_strings(const uint8_t *a, size_t alen, const uint8_t *b, size_t blen) {
+    if (a == NULL || b == NULL) {
+        return edit_compare_ascii(a, alen, b, blen);
+    }
+    if (alen > INT32_MAX || blen > INT32_MAX || !icu_load()) {
+        return edit_compare_ascii(a, alen, b, blen);
+    }
+    int32_t status = ICU_ZERO_ERROR;
+    int32_t res = s_collate(s_collator, (const char *)a, (int32_t)alen, (const char *)b,
+                            (int32_t)blen, &status);
+    if (status > ICU_ZERO_ERROR) {
+        return edit_compare_ascii(a, alen, b, blen);
+    }
+    if (res == 0) {
+        return 0;
+    }
+    return res > 0 ? 1 : -1;
+}
+
+size_t edit_icu_error_text(uint32_t code, char *dst, size_t cap) {
+    const char *msg = "";
+    if (icu_load()) {
+        const char *name = s_errname((int32_t)code);
+        if (name != NULL) {
+            msg = name;
+        }
+    }
+    size_t n = strlen(msg);
+    if (dst != NULL && cap > 0) {
+        size_t k = n < cap ? n : cap - 1;
+        memcpy(dst, msg, k);
+        dst[k] = '\0';
+    }
+    return n;
+}
+
+size_t edit_icu_encodings(const char ***out) {
+    static const char *fallback[] = {"UTF-8"};
+    if (out == NULL) {
+        return 0;
+    }
+    *out = fallback;
+    if (!icu_load()) {
+        return 1;
+    }
+    static const char **cache = NULL;
+    static size_t cached = 0;
+    if (cache == NULL) {
+        size_t cap = 64;
+        size_t n = 0;
+        const char **list = (const char **)malloc(cap * sizeof *list);
+        if (list == NULL) {
+            return 1;
+        }
+        for (int32_t i = 0;; ++i) {
+            char *name = s_available(i);
+            if (name == NULL) {
+                break;
+            }
+            if (n == cap) {
+                if (cap > (size_t)-1 / 2 / sizeof *list) {
+                    break;
+                }
+                cap *= 2;
+                const char **bigger = (const char **)realloc(list, cap * sizeof *list);
+                if (bigger == NULL) {
+                    break;
+                }
+                list = bigger;
+            }
+            list[n++] = name;
+        }
+        if (n == 0) {
+            free(list);
+            return 1;
+        }
+        cache = list;
+        cached = n;
+    }
+    *out = cache;
+    return cached;
+}
+
+int edit_conv_init(edit_conv_t *c, const char *src_enc, const char *dst_enc, uint16_t *pivot,
+                   size_t pivot_len) {
+    if (c == NULL) {
+        return -1;
+    }
+    memset(c, 0, sizeof *c);
+    if (src_enc == NULL || dst_enc == NULL || pivot == NULL || pivot_len == 0) {
+        return -1;
+    }
+    if (!icu_load()) {
+        return -1;
+    }
+    char sname[256];
+    char dname[256];
+    size_t slen = strlen(src_enc);
+    size_t dlen = strlen(dst_enc);
+    if (slen >= sizeof sname || dlen >= sizeof dname) {
+        return -1;
+    }
+    memcpy(sname, src_enc, slen + 1);
+    memcpy(dname, dst_enc, dlen + 1);
+    int32_t status = ICU_ZERO_ERROR;
+    icu_converter_t *src = s_cnvopen(sname, &status);
+    icu_converter_t *dst = s_cnvopen(dname, &status);
+    if (status > ICU_ZERO_ERROR || src == NULL || dst == NULL) {
+        if (src != NULL) {
+            s_cnvclose(src);
+        }
+        if (dst != NULL) {
+            s_cnvclose(dst);
+        }
+        c->err = edit_error_icu((uint32_t)(status > 0 ? status : 0));
+        c->err_set = true;
+        return -1;
+    }
+    c->src_cnv = src;
+    c->dst_cnv = dst;
+    c->pivot = pivot;
+    c->pivot_len = pivot_len;
+    c->pivot_src = pivot;
+    c->pivot_dst = pivot + pivot_len;
+    c->reset = true;
+    return 0;
+}
+
+void edit_conv_destroy(edit_conv_t *c) {
+    if (c == NULL) {
+        return;
+    }
+    if (c->src_cnv != NULL) {
+        s_cnvclose((icu_converter_t *)c->src_cnv);
+    }
+    if (c->dst_cnv != NULL) {
+        s_cnvclose((icu_converter_t *)c->dst_cnv);
+    }
+    memset(c, 0, sizeof *c);
+}
+
+int edit_conv_step(edit_conv_t *c, const uint8_t *in, size_t inlen, uint8_t *out, size_t outcap,
+                   size_t *in_used, size_t *out_used) {
+    if (in_used != NULL) {
+        *in_used = 0;
+    }
+    if (out_used != NULL) {
+        *out_used = 0;
+    }
+    if (c == NULL || c->src_cnv == NULL || c->dst_cnv == NULL) {
+        return -1;
+    }
+    if ((inlen > 0 && in == NULL) || (outcap > 0 && out == NULL)) {
+        return -1;
+    }
+    // ICU rejects NULL pointers even for zero-length buffers; Rust passes
+    // dangling (non-null) pointers there. Use dummies the same way.
+    char dummy = 0;
+    const char *ip0 = inlen > 0 ? (const char *)in : &dummy;
+    char *op0 = outcap > 0 ? (char *)out : &dummy;
+    const char *ip = ip0;
+    const char *iend = ip0 + inlen;
+    char *op = op0;
+    const char *oend = op0 + outcap;
+    int32_t status = ICU_ZERO_ERROR;
+    s_convert((icu_converter_t *)c->dst_cnv, (icu_converter_t *)c->src_cnv, &op, oend, &ip, iend,
+              c->pivot, &c->pivot_src, &c->pivot_dst, c->pivot + c->pivot_len, c->reset, inlen == 0,
+              &status);
+    c->reset = false;
+    if (status > ICU_ZERO_ERROR && status != ICU_BUFFER_OVERFLOW_ERROR) {
+        c->err = edit_error_icu((uint32_t)status);
+        c->err_set = true;
+        return -1;
+    }
+    if (in_used != NULL) {
+        *in_used = (size_t)(ip - ip0);
+    }
+    if (out_used != NULL) {
+        *out_used = (size_t)(op - op0);
+    }
+    return 0;
+}
+
+bool edit_conv_error(const edit_conv_t *c, edit_error_t *out_err) {
+    if (c == NULL || !c->err_set) {
+        return false;
+    }
+    if (out_err != NULL) {
+        *out_err = c->err;
+    }
+    return true;
 }

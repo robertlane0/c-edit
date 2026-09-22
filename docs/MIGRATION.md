@@ -19,6 +19,8 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | arena (core+scratch) | C validated | migration | LIFO debug-only | alloc/grow/shrink/scratch tests |
 | arena (vec+string) | C validated | migration | generic macro vecs | Rust lossy parity |
 | icu (fold+ascii cmp) | C validated | migration | dlopen + version suffix | ICU-backed vectors |
+| icu (conv/collation) | C validated | migration | all-or-nothing load | round-trip + collation |
+| icu (text/regex UText) | Not assessed | migration | needs TextBuffer | TBD |
 | fuzzy (scorer) | C validated | migration | dead Rust code, validated via scratch copy | 27 differential vectors |
 | sys (unix/vm) | C started | migration | vm done; rest pending | reserve/commit/release tests |
 | buffer (TextBuffer) | Not assessed | migration | undo/redo, regex search | TBD |
@@ -29,7 +31,6 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | unicode (measure) | C validated | migration | i64 compare guards | all 15 Rust tests |
 | simd (memchr2/memrchr2/memset) | C validated | migration | scalar first; SIMD needs benches | ports + guard-page tests |
 | path (normalize, unix) | C validated | migration | windows deferred to sys slice | unix vectors + extras |
-| icu (converters/regex/collation) | Not assessed | migration | dlopen FFI surface | TBD |
 | framebuffer/tui/input | Not assessed | migration | syscalls; concurrency | TBD |
 | vt (parser) | C validated | migration | DCS quirk mirrored | differential streams |
 | sys (rest: console, files, icu-load) | Not assessed | migration | platform ABI | TBD |
@@ -50,6 +51,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - arena: 141 checks, alloc/grow/shrink/reset/scratch + NDEBUG run, ASan/UBSan clean.
 - avec/astring: 349 checks, generic vec + string ops + lossy parity, ASan/UBSan/NDEBUG clean.
 - icu: 65 checks, ICU-backed fold vectors + ascii collation port, ASan clean.
+- icu conv/collation: 99 checks total, converter round-trips + root collation, ASan/NDEBUG clean.
 - fuzzy: 144 checks, 27 differential vectors from scratch-wired Rust copy, ASan/NDEBUG clean.
 - doc/nav: 135 checks, Rust unit port + full offset tables for fwd/bwd/select, ASan/NDEBUG clean.
 - gap: 152 checks, small+large backings, copy/nav integration, ASan/NDEBUG clean.
