@@ -27,6 +27,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | buffer (tbuf core) | C validated | migration | cursor/history/edit/undo | scripted Rust parity |
 | buffer (tbuf search) | C validated | migration | select + find/replace | Rust vectors + hang fix |
 | buffer (tbuf indent) | C validated | migration | empty-line no-op hardens panic | Rust vectors |
+| buffer (tbuf render) | C validated | migration | margin/wrap/select/ruler | byte-exact VT |
 | buffer (tbuf file) | C validated | migration | fd IO + BOM + heuristics | round-trip parity |
 | buffer (nav) | C validated | migration | differential tables | Rust unit port + select |
 | buffer (gap) | C validated | migration | VM + heap backings | ops/copy/nav integration |
@@ -68,6 +69,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - tbuf: 172 checks, scripted edit/undo/cursor/newline parity, ASan/NDEBUG clean.
 - tbuf search: 66 checks, select/extract/find/replace parity, ASan/NDEBUG clean.
 - tbuf indent/file: 191 + 61 checks, indent vectors + BOM/heuristic/round-trips, ASan/NDEBUG clean.
+- tbuf render: 21 checks, byte-exact VT incl. margin/ruler/select, ASan/NDEBUG clean.
 - fb: 33 checks, byte-exact VT diff output, ASan/NDEBUG clean.
 - input: 122 checks, differential key/mouse/paste/resize events, ASan/NDEBUG clean.
 - Notable: upstream find_and_replace_all loops forever (stale ICU chunks

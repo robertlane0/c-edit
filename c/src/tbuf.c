@@ -419,6 +419,12 @@ void edit_tbuf_set_margin(edit_tbuf_t *t, bool enabled) {
     tbuf_reflow(t, true);
 }
 
+void edit_tbuf_set_ruler(edit_tbuf_t *t, int32_t column) {
+    if (t != NULL) {
+        t->ruler = column;
+    }
+}
+
 bool edit_tbuf_set_width(edit_tbuf_t *t, int32_t width) {
     if (t == NULL || width <= 0 || width == t->width) {
         return false;

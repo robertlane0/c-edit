@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #include "edit/doc.h"
+#include "edit/fb.h"
 #include "edit/gap.h"
 #include "edit/helpers.h"
 #include "edit/measure.h"
@@ -132,6 +133,7 @@ int32_t edit_tbuf_text_width(const edit_tbuf_t *t);
 void edit_tbuf_make_visible(edit_tbuf_t *t);
 bool edit_tbuf_take_visibility(edit_tbuf_t *t);
 void edit_tbuf_set_margin(edit_tbuf_t *t, bool enabled);
+void edit_tbuf_set_ruler(edit_tbuf_t *t, int32_t column);
 bool edit_tbuf_set_width(edit_tbuf_t *t, int32_t width);
 int32_t edit_tbuf_tab_size(const edit_tbuf_t *t);
 bool edit_tbuf_set_tab_size(edit_tbuf_t *t, int32_t width);
@@ -190,6 +192,10 @@ int edit_tbuf_find_replace(edit_tbuf_t *t, const char *pattern, edit_search_opts
                            const char *replacement);
 int edit_tbuf_find_replace_all(edit_tbuf_t *t, const char *pattern, edit_search_opts_t opts,
                                const char *replacement);
+
+// Renders the viewport into fb; false on empty destination or OOM.
+bool edit_tbuf_render(edit_tbuf_t *t, edit_point_t origin, edit_rect_t destination, bool focused,
+                      edit_fb_t *fb, int32_t *out_xmax);
 
 #ifdef __cplusplus
 }
