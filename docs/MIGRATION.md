@@ -41,6 +41,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | input | C validated | migration | SGR/x10/paste quirks | differential events |
 | vt (parser) | C validated | migration | DCS quirk mirrored | differential streams |
 | sys (rest: console, files, icu-load) | Not assessed | migration | platform ABI | TBD |
+| sys (unix tty) | C validated | migration | PTY-tested poll/modes | read/write/resize |
 | document (traits) | C validated | migration | vtable + slice doc | interface tests |
 | fuzzy (windows paths) | Not assessed | migration | needs sys slice | TBD |
 
@@ -72,6 +73,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - tbuf render: 21 checks, byte-exact VT incl. margin/ruler/select, ASan/NDEBUG clean.
 - fb: 33 checks, byte-exact VT diff output, ASan/NDEBUG clean.
 - input: 122 checks, differential key/mouse/paste/resize events, ASan/NDEBUG clean.
+- tty: 39 checks, PTY-backed modes/poll/resize/file-id/lang, ASan/NDEBUG clean.
 - Notable: upstream find_and_replace_all loops forever (stale ICU chunks
   after setUText); C refreshes the provider window on set_text and terminates.
 - Policy: public arg validation returns errors gracefully (tested in debug);
