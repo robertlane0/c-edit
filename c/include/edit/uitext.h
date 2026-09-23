@@ -7,6 +7,7 @@
 
 #include "edit/fb.h"
 #include "edit/helpers.h"
+#include "edit/tree.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,19 +15,6 @@ extern "C" {
 
 // Styled label text (cf. Rust TextContent + render_styled_text).
 // Heap-owned; empty-fg/attr sentinel matches INVALID_STYLED_TEXT_CHUNK.
-typedef enum {
-    EDIT_OVF_CLIP,
-    EDIT_OVF_HEAD,   // ellipsis first ("…tail")
-    EDIT_OVF_MIDDLE, // ellipsis inside ("he…lo")
-    EDIT_OVF_TAIL,   // ellipsis last ("hea…")
-} edit_overflow_t;
-
-typedef struct {
-    size_t offset;
-    uint32_t fg;
-    uint8_t attr;
-} edit_text_chunk_t;
-
 typedef struct {
     char *text;
     size_t len;

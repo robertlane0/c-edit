@@ -43,6 +43,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | tui (layout) | C validated | migration | tables/scroll/floats | hand-traced rects |
 | tui (uitext) | C validated | migration | ellipsis + styled chunks | byte-exact VT |
 | tui (frame) | C validated | migration | input/focus/settling/clipboard | frame pump tests |
+| tui (widgets) | C validated | migration | blocks/labels/buttons/tables | activation flows |
 | vt (parser) | C validated | migration | DCS quirk mirrored | differential streams |
 | sys (rest: console, files, icu-load) | Not assessed | migration | platform ABI | TBD |
 | sys (unix tty) | C validated | migration | PTY-tested poll/modes | read/write/resize |
@@ -81,6 +82,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - tlayout: 45 checks, stack/table/scroll/float rects, ASan/NDEBUG clean.
 - uitext: 52 checks, ellipsis modes + styled chunks, ASan/NDEBUG clean.
 - tuiframe: 47 checks, resize/focus/mouse/click/clipboard flows, ASan/NDEBUG clean.
+- twidgets: 69 checks, labels/buttons/modal/table/attrs/shortcuts, ASan/NDEBUG clean.
 - tty: 39 checks, PTY-backed modes/poll/resize/file-id/lang, ASan/NDEBUG clean.
 - Notable: upstream find_and_replace_all loops forever (stale ICU chunks
   after setUText); C refreshes the provider window on set_text and terminates.

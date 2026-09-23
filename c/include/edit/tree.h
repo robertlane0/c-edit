@@ -8,6 +8,20 @@
 #include "edit/arena.h"
 #include "edit/helpers.h"
 
+// Styled text chunk + overflow live here (tree content model).
+typedef enum {
+    EDIT_OVF_CLIP,
+    EDIT_OVF_HEAD, // ellipsis first ("…tail")
+    EDIT_OVF_MIDDLE, // ellipsis inside ("he…lo")
+    EDIT_OVF_TAIL, // ellipsis last ("hea…")
+} edit_overflow_t;
+
+typedef struct {
+    size_t offset;
+    uint32_t fg;
+    uint8_t attr;
+} edit_text_chunk_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -58,8 +72,18 @@ typedef struct edit_tnode {
     struct edit_tnode *child_last;
     size_t child_count;
     edit_node_attr_t attributes;
-    // Content kinds needed by layout (widgets add more later).
-    int content_kind; // 0 none, 1 table, 2 scrollarea
+    // Content kinds: 0 none, 1 table, 2 scrollarea, 3 text, 4 modal.
+    int content_kind;
+    // Text content (arena storage, label builders).
+    const char *text_ptr;
+    size_t text_len;
+    size_t text_cap;
+    edit_text_chunk_t *text_chunks;
+    size_t text_nchunks;
+    size_t text_chunkcap;
+    edit_overflow_t text_overflow;
+    // Modal title (arena storage, NULL when none/empty).
+    const char *modal_title;
     // Table: column widths (arena vec) + cell gap.
     int32_t *table_columns;
     size_t table_ncols;
