@@ -36,6 +36,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | simd (memchr2/memrchr2/memset) | C validated | migration | scalar first; SIMD needs benches | ports + guard-page tests |
 | path (normalize, unix) | C validated | migration | windows deferred to sys slice | unix vectors + extras |
 | framebuffer/tui/input | Not assessed | migration | syscalls; concurrency | TBD |
+| framebuffer | C validated | migration | diff render, wide glyphs | byte-exact VT |
 | vt (parser) | C validated | migration | DCS quirk mirrored | differential streams |
 | sys (rest: console, files, icu-load) | Not assessed | migration | platform ABI | TBD |
 | document (traits) | C validated | migration | vtable + slice doc | interface tests |
@@ -66,6 +67,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - tbuf: 172 checks, scripted edit/undo/cursor/newline parity, ASan/NDEBUG clean.
 - tbuf search: 66 checks, select/extract/find/replace parity, ASan/NDEBUG clean.
 - tbuf indent/file: 191 + 61 checks, indent vectors + BOM/heuristic/round-trips, ASan/NDEBUG clean.
+- fb: 33 checks, byte-exact VT diff output, ASan/NDEBUG clean.
 - Notable: upstream find_and_replace_all loops forever (stale ICU chunks
   after setUText); C refreshes the provider window on set_text and terminates.
 - Policy: public arg validation returns errors gracefully (tested in debug);
