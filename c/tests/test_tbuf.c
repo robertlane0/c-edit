@@ -201,6 +201,38 @@ int main(void) {
     edit_tbuf_mark_dirty(&t3);
     CHECK(edit_tbuf_is_dirty(&t3));
 
+    // Indent ops (Rust-verified; empty-line unindent is a C no-op).
+    {
+        edit_tbuf_t it;
+        CHECK(edit_tbuf_init(&it, false) == 0);
+        edit_tbuf_write(&it, (const uint8_t *)"    indented\n\tTabbed\nplain\n", 27, false);
+        edit_tbuf_goto_logical(&it, pt(6, 0));
+        edit_tbuf_unindent(&it);
+        CHECK(expect_text(&it, "indented\n        Tabbed\n        plain\n        ") == 0);
+        edit_point_t c = edit_tbuf_cursor_logical(&it);
+        CHECK(c.x == 2 && c.y == 0);
+        edit_tbuf_goto_logical(&it, pt(0, 1));
+        edit_tbuf_unindent(&it);
+        CHECK(expect_text(&it, "indented\n    Tabbed\n        plain\n        ") == 0);
+        edit_tbuf_goto_logical(&it, pt(0, 2));
+        edit_tbuf_unindent(&it);
+        CHECK(expect_text(&it, "indented\n    Tabbed\n    plain\n        ") == 0);
+        edit_point_t ie = edit_tbuf_indent_end(&it);
+        CHECK(ie.x == 4 && ie.y == 2);
+        // Undo restores the removed indentation.
+        edit_tbuf_undo(&it);
+        CHECK(expect_text(&it, "indented\n    Tabbed\n        plain\n        ") == 0);
+        // Empty line: no-op (Rust panics here).
+        edit_tbuf_t ie2;
+        CHECK(edit_tbuf_init(&ie2, false) == 0);
+        edit_tbuf_write(&ie2, (const uint8_t *)"a\n\nb", 4, false);
+        edit_tbuf_goto_logical(&ie2, pt(0, 1));
+        edit_tbuf_unindent(&ie2);
+        CHECK(expect_text(&ie2, "a\n\nb") == 0);
+        edit_tbuf_destroy(&ie2);
+        edit_tbuf_destroy(&it);
+    }
+
     // NULL safety.
     CHECK(edit_tbuf_init(NULL, false) != 0);
     edit_tbuf_destroy(NULL);

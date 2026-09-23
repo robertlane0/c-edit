@@ -662,3 +662,123 @@ done:
     }
     t->newlines_crlf = crlf;
 }
+
+edit_point_t edit_tbuf_indent_end(edit_tbuf_t *t) {
+    edit_point_t none = {0, 0};
+    if (t == NULL) {
+        return none;
+    }
+    edit_cursor_t line = tbuf_goto_line_start(t, t->cursor, t->cursor.logical.y);
+    int32_t chars = 0;
+    size_t offset = line.offset;
+    for (;;) {
+        const uint8_t *chunk = NULL;
+        size_t chunk_len = 0;
+        edit_gap_read_fwd(&t->buffer, offset, &chunk, &chunk_len);
+        if (chunk == NULL || chunk_len == 0) {
+            break;
+        }
+        size_t i = 0;
+        while (i < chunk_len) {
+            uint8_t c = chunk[i];
+            if (c == '\n' || c == '\r' || (c != ' ' && c != '\t')) {
+                break;
+            }
+            chars += 1;
+            i += 1;
+        }
+        if (i < chunk_len) {
+            break;
+        }
+        offset += chunk_len;
+    }
+    edit_point_t out = {chars, line.logical.y};
+    return out;
+}
+
+void edit_tbuf_unindent(edit_tbuf_t *t) {
+    if (t == NULL) {
+        return;
+    }
+    edit_point_t sel_beg = t->cursor.logical;
+    edit_point_t sel_end = sel_beg;
+    if (t->has_selection) {
+        sel_beg = t->sel_beg;
+        sel_end = t->sel_end;
+    }
+    edit_point_t lo = sel_beg;
+    edit_point_t hi = sel_end;
+    if (edit_point_cmp(lo, hi) > 0) {
+        edit_point_t tmp = lo;
+        lo = hi;
+        hi = tmp;
+    }
+    edit_cursor_t beg = tbuf_move_to_logical(t, t->cursor, (edit_point_t){0, lo.y});
+    edit_cursor_t end = tbuf_move_to_logical(t, beg, (edit_point_t){INT32_MAX, hi.y});
+
+    size_t span = end.offset > beg.offset ? end.offset - beg.offset : 0;
+    uint8_t *replacement = NULL;
+    if (span > 0) {
+        replacement = (uint8_t *)malloc(span);
+        if (replacement == NULL) {
+            return;
+        }
+        size_t got = edit_gap_extract(&t->buffer, beg.offset, end.offset, replacement, span);
+        if (got != span) {
+            free(replacement);
+            return;
+        }
+    }
+    size_t initial_len = span;
+    size_t replen = span;
+    size_t offset = 0;
+    int32_t y = beg.logical.y;
+    int32_t tab_size = t->tab_size > 0 ? t->tab_size : 1;
+    while (offset < replen) {
+        size_t remove = 0;
+        if (replacement[offset] == '\t') {
+            remove = 1;
+        } else {
+            while (remove < (size_t)tab_size && offset + remove < replen &&
+                   replacement[offset + remove] == ' ') {
+                remove += 1;
+            }
+        }
+        if (remove > 0) {
+            memmove(replacement + offset, replacement + offset + remove, replen - offset - remove);
+            replen -= remove;
+        }
+        if (y == sel_beg.y) {
+            sel_beg.x -= (int32_t)remove;
+        }
+        if (y == sel_end.y) {
+            sel_end.x -= (int32_t)remove;
+        }
+        size_t next = offset;
+        int32_t line = y;
+        edit_newlines_forward(replacement, replen, offset, y, y + 1, &next, &line);
+        offset = next;
+        y = line;
+        if (offset >= replen) {
+            break;
+        }
+    }
+
+    if (replen == initial_len) {
+        free(replacement);
+        return;
+    }
+    tbuf_edit_begin(t, 0, beg);
+    tbuf_edit_delete(t, end);
+    if (replen > 0) {
+        edit_write(t, replacement, replen);
+    }
+    free(replacement);
+    tbuf_edit_end(t);
+
+    if (t->has_selection) {
+        t->sel_beg = sel_beg;
+        t->sel_end = sel_end;
+    }
+    t->cursor = tbuf_move_to_logical(t, t->cursor, sel_end);
+}

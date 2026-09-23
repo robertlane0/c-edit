@@ -172,6 +172,18 @@ void edit_tbuf_delete(edit_tbuf_t *t, edit_move_t granularity, int32_t delta);
 void edit_tbuf_undo(edit_tbuf_t *t);
 void edit_tbuf_redo(edit_tbuf_t *t);
 
+// First non-whitespace logical position of the cursor line.
+edit_point_t edit_tbuf_indent_end(edit_tbuf_t *t);
+// Removes one tab-width of indentation (empty selection = no-op, unlike Rust).
+void edit_tbuf_unindent(edit_tbuf_t *t);
+
+// File IO over fds (cf. read_file/write_file). Encoding NULL detects via BOM.
+// 0 ok, -1 error (see err; Sys(errno) for IO, Icu for conversion).
+int edit_tbuf_read_file(edit_tbuf_t *t, int fd, const char *encoding, edit_error_t *err);
+int edit_tbuf_write_file(edit_tbuf_t *t, int fd, edit_error_t *err);
+// BOM sniff: returns static encoding name or NULL.
+const char *edit_bom_detect(const uint8_t *bytes, size_t len);
+
 // Find next occurrence and select it. 0 ok, -1 error (bad pattern/ICU).
 int edit_tbuf_find_select(edit_tbuf_t *t, const char *pattern, edit_search_opts_t opts);
 int edit_tbuf_find_replace(edit_tbuf_t *t, const char *pattern, edit_search_opts_t opts,
