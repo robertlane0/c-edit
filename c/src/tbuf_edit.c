@@ -7,10 +7,13 @@
 #include "edit/nav.h"
 #include "edit/simd.h"
 
+#include "tbuf_priv.h"
+
 void edit_tbuf_destroy(edit_tbuf_t *t) {
     if (t == NULL) {
         return;
     }
+    tbuf_search_free(t);
     for (size_t i = 0; i < 2; ++i) {
         edit_hist_t *stack = i == 0 ? t->undo : t->redo;
         size_t len = i == 0 ? t->undo_len : t->redo_len;
@@ -107,10 +110,9 @@ static bool hist_transfer(edit_hist_t **from, size_t *from_len, edit_hist_t **to
     return true;
 }
 
-#include "tbuf_priv.h"
 static void tbuf_undo_redo(edit_tbuf_t *t, bool undo);
 
-static void edit_begin(edit_tbuf_t *t, int hist_type, edit_cursor_t cursor) {
+void tbuf_edit_begin(edit_tbuf_t *t, int hist_type, edit_cursor_t cursor) {
     t->edit_depth += 1;
     if (t->edit_depth > 1) {
         return;
@@ -169,7 +171,7 @@ static void edit_write(edit_tbuf_t *t, const uint8_t *text, size_t len) {
     t->logical_lines += t->cursor.logical.y - y_before;
 }
 
-static void edit_delete(edit_tbuf_t *t, edit_cursor_t to) {
+void tbuf_edit_delete(edit_tbuf_t *t, edit_cursor_t to) {
     assert(to.offset >= t->edit_off);
     if (to.offset < t->edit_off) {
         return;
@@ -247,7 +249,7 @@ static void edit_delete(edit_tbuf_t *t, edit_cursor_t to) {
     t->logical_lines += y_before - to.logical.y;
 }
 
-static void edit_end(edit_tbuf_t *t) {
+void tbuf_edit_end(edit_tbuf_t *t) {
     assert(t->edit_depth > 0);
     t->edit_depth -= 1;
     if (t->edit_depth > 0) {
@@ -285,6 +287,7 @@ static void edit_end(edit_tbuf_t *t) {
     } else {
         t->visual_lines = t->logical_lines;
     }
+    tbuf_search_free(t);
     t->has_render_cursor = false;
 }
 
@@ -406,13 +409,13 @@ void edit_tbuf_write(edit_tbuf_t *t, const uint8_t *text, size_t len, bool raw) 
     edit_cursor_t beg;
     edit_cursor_t end;
     if (edit_tbuf_selection_range(t, &beg, &end)) {
-        edit_begin(t, 1, beg);
-        edit_delete(t, end);
+        tbuf_edit_begin(t, 1, beg);
+        tbuf_edit_delete(t, end);
         edit_point_t z = {0, 0};
         tbuf_set_selection(t, false, z, z);
     }
     if (t->edit_depth <= 0) {
-        edit_begin(t, 1, t->cursor);
+        tbuf_edit_begin(t, 1, t->cursor);
     }
 
     static const char spaces[] = "                    ";
@@ -456,7 +459,7 @@ void edit_tbuf_write(edit_tbuf_t *t, const uint8_t *text, size_t len, bool raw) 
             int32_t delete_n = t->cursor.logical.x - column_before;
             edit_point_t target = {t->cursor.logical.x + delete_n, t->cursor.logical.y};
             edit_cursor_t endc = tbuf_move_to_logical(t, t->cursor, target);
-            edit_delete(t, endc);
+            tbuf_edit_delete(t, endc);
         }
 
         offset += line_len;
@@ -529,7 +532,7 @@ void edit_tbuf_write(edit_tbuf_t *t, const uint8_t *text, size_t len, bool raw) 
         }
     }
 
-    edit_end(t);
+    tbuf_edit_end(t);
 }
 
 void edit_tbuf_delete(edit_tbuf_t *t, edit_move_t granularity, int32_t delta) {
@@ -560,9 +563,9 @@ void edit_tbuf_delete(edit_tbuf_t *t, edit_move_t granularity, int32_t delta) {
             end = tmp;
         }
     }
-    edit_begin(t, 2, beg);
-    edit_delete(t, end);
-    edit_end(t);
+    tbuf_edit_begin(t, 2, beg);
+    tbuf_edit_delete(t, end);
+    tbuf_edit_end(t);
     edit_point_t z = {0, 0};
     tbuf_set_selection(t, false, z, z);
 }

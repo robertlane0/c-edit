@@ -417,6 +417,17 @@ void edit_regex_set_text(edit_regex_t *r, edit_utext_t *text) {
         return;
     }
     int32_t status = 0;
+    // Refresh BEFORE setUText: ICU snapshots (clones) the window at set
+    // time, so a post-call refresh would miss the matcher. Without this,
+    // stale chunks yield phantom matches (upstream replace-all loops).
+    utext_t *ut = (utext_t *)text->ut;
+    if (!utext_access(ut, 0, true)) {
+        ut->chunk_native_start = 0;
+        ut->chunk_native_limit = 0;
+        ut->chunk_offset = 0;
+        ut->chunk_length = 0;
+        ut->native_indexing_limit = 0;
+    }
     icu_rxtext((icu_regex_t *)r->rx, (icu_utext_s *)text->ut, &status);
     (void)status;
 }

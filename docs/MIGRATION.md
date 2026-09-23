@@ -25,6 +25,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | sys (unix/vm) | C started | migration | vm done; rest pending | reserve/commit/release tests |
 | buffer (TextBuffer) | Not assessed | migration | undo/redo, regex search | TBD |
 | buffer (tbuf core) | C validated | migration | cursor/history/edit/undo | scripted Rust parity |
+| buffer (tbuf search) | C validated | migration | select + find/replace | Rust vectors + hang fix |
 | buffer (nav) | C validated | migration | differential tables | Rust unit port + select |
 | buffer (gap) | C validated | migration | VM + heap backings | ops/copy/nav integration |
 | unicode (utf8 decoder) | C validated | migration | WHATWG resync offsets | Rust vector parity |
@@ -61,6 +62,9 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - vt: 225 checks, differential token streams incl. chunk splits, ASan/NDEBUG clean.
 - uregex: 53 checks, UText provider + search over gap buffer, ASan/NDEBUG clean.
 - tbuf: 172 checks, scripted edit/undo/cursor/newline parity, ASan/NDEBUG clean.
+- tbuf search: 66 checks, select/extract/find/replace parity, ASan/NDEBUG clean.
+- Notable: upstream find_and_replace_all loops forever (stale ICU chunks
+  after setUText); C refreshes the provider window on set_text and terminates.
 - Policy: public arg validation returns errors gracefully (tested in debug);
   asserts kept only for usage-discipline invariants (borrow order, tail-only shrink).
 - Gates: strict warnings, cppcheck, clang-format, `cargo +nightly test --lib` green (37).

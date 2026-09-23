@@ -9,6 +9,7 @@
 #include "edit/gap.h"
 #include "edit/helpers.h"
 #include "edit/measure.h"
+#include "edit/uregex.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,6 +39,27 @@ typedef struct {
     size_t added_len;
     size_t added_cap;
 } edit_hist_t;
+
+typedef struct {
+    bool match_case;
+    bool whole_word;
+    bool use_regex;
+} edit_search_opts_t;
+
+typedef struct {
+    char *pattern;
+    size_t pattern_len;
+    edit_search_opts_t opts;
+    edit_doc_t doc; // gap doc backing the UText source (must outlive text)
+    edit_utext_t text;
+    edit_regex_t regex;
+    bool has_text;
+    bool has_regex;
+    uint32_t buffer_generation;
+    uint32_t selection_generation;
+    size_t next_search_offset;
+    bool no_matches;
+} edit_search_t;
 
 typedef struct {
     edit_gap_t buffer;
@@ -77,6 +99,7 @@ typedef struct {
     bool newlines_crlf;
     bool overtype;
     bool wants_visibility;
+    edit_search_t *search; // active search cache, NULL when none
 } edit_tbuf_t;
 
 int edit_tbuf_init(edit_tbuf_t *t, bool small);
@@ -121,6 +144,21 @@ bool edit_tbuf_has_selection(const edit_tbuf_t *t);
 void edit_tbuf_clear_selection(edit_tbuf_t *t);
 void edit_tbuf_set_selection(edit_tbuf_t *t, edit_point_t beg, edit_point_t end);
 bool edit_tbuf_selection_range(edit_tbuf_t *t, edit_cursor_t *out_beg, edit_cursor_t *out_end);
+// Same with whole-line fallback when nothing is selected (copy/cut).
+bool edit_tbuf_selection_range_fb(edit_tbuf_t *t, bool line_fallback, edit_cursor_t *out_beg,
+                                  edit_cursor_t *out_end);
+void edit_tbuf_select_word(edit_tbuf_t *t);
+void edit_tbuf_select_line(edit_tbuf_t *t);
+void edit_tbuf_select_all(edit_tbuf_t *t);
+void edit_tbuf_start_selection(edit_tbuf_t *t);
+void edit_tbuf_selection_update_visual(edit_tbuf_t *t, edit_point_t pos);
+void edit_tbuf_selection_update_logical(edit_tbuf_t *t, edit_point_t pos);
+void edit_tbuf_selection_update_delta(edit_tbuf_t *t, edit_move_t granularity, int32_t delta);
+// Extracts selection (line fallback); delete removes it (undoable).
+// Returns malloc'd bytes (caller frees) and length; NULL/0 when empty.
+uint8_t *edit_tbuf_extract_selection(edit_tbuf_t *t, bool del, size_t *out_len);
+// Same but refuses search-made selections; *out_has false when refused.
+uint8_t *edit_tbuf_extract_user_selection(edit_tbuf_t *t, bool del, size_t *out_len, bool *out_has);
 
 // Content exchange.
 void edit_tbuf_copy_from(edit_tbuf_t *t, const edit_doc_t *src);
@@ -133,6 +171,13 @@ void edit_tbuf_write(edit_tbuf_t *t, const uint8_t *text, size_t len, bool raw);
 void edit_tbuf_delete(edit_tbuf_t *t, edit_move_t granularity, int32_t delta);
 void edit_tbuf_undo(edit_tbuf_t *t);
 void edit_tbuf_redo(edit_tbuf_t *t);
+
+// Find next occurrence and select it. 0 ok, -1 error (bad pattern/ICU).
+int edit_tbuf_find_select(edit_tbuf_t *t, const char *pattern, edit_search_opts_t opts);
+int edit_tbuf_find_replace(edit_tbuf_t *t, const char *pattern, edit_search_opts_t opts,
+                           const char *replacement);
+int edit_tbuf_find_replace_all(edit_tbuf_t *t, const char *pattern, edit_search_opts_t opts,
+                               const char *replacement);
 
 #ifdef __cplusplus
 }
