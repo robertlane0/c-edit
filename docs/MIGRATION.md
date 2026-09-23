@@ -26,6 +26,8 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | buffer (TextBuffer) | Not assessed | migration | undo/redo, regex search | TBD |
 | buffer (tbuf core) | C validated | migration | cursor/history/edit/undo | scripted Rust parity |
 | buffer (tbuf search) | C validated | migration | select + find/replace | Rust vectors + hang fix |
+| buffer (tbuf indent) | C validated | migration | empty-line no-op hardens panic | Rust vectors |
+| buffer (tbuf file) | C validated | migration | fd IO + BOM + heuristics | round-trip parity |
 | buffer (nav) | C validated | migration | differential tables | Rust unit port + select |
 | buffer (gap) | C validated | migration | VM + heap backings | ops/copy/nav integration |
 | unicode (utf8 decoder) | C validated | migration | WHATWG resync offsets | Rust vector parity |
@@ -63,6 +65,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - uregex: 53 checks, UText provider + search over gap buffer, ASan/NDEBUG clean.
 - tbuf: 172 checks, scripted edit/undo/cursor/newline parity, ASan/NDEBUG clean.
 - tbuf search: 66 checks, select/extract/find/replace parity, ASan/NDEBUG clean.
+- tbuf indent/file: 191 + 61 checks, indent vectors + BOM/heuristic/round-trips, ASan/NDEBUG clean.
 - Notable: upstream find_and_replace_all loops forever (stale ICU chunks
   after setUText); C refreshes the provider window on set_text and terminates.
 - Policy: public arg validation returns errors gracefully (tested in debug);
