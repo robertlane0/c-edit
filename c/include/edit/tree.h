@@ -58,6 +58,17 @@ typedef struct edit_tnode {
     struct edit_tnode *child_last;
     size_t child_count;
     edit_node_attr_t attributes;
+    // Content kinds needed by layout (widgets add more later).
+    int content_kind; // 0 none, 1 table, 2 scrollarea
+    // Table: column widths (arena vec) + cell gap.
+    int32_t *table_columns;
+    size_t table_ncols;
+    size_t table_capcols;
+    edit_size_t table_gap;
+    // Scrollarea: retained scroll state.
+    edit_point_t scroll_offset;
+    int32_t scroll_drag_start;
+    int32_t scroll_thumb;
     edit_size_t intrinsic_size;
     bool intrinsic_set;
     edit_rect_t outer;
@@ -104,6 +115,12 @@ typedef edit_visit_t (*edit_visit_fn)(edit_tnode_t *node, void *ctx);
 // Depth-first wraparound traversal from start within root.
 void edit_tree_visit(edit_tnode_t *root, edit_tnode_t *start, bool forward, edit_visit_fn cb,
                      void *ctx);
+
+// Layout (cf. Node::compute_intrinsic_size/layout_children + frame driver).
+// Content kinds for layout: 0 none, 1 table, 2 scrollarea.
+void edit_tree_make_table(edit_tnode_t *node);
+void edit_tree_make_scrollarea(edit_tnode_t *node);
+void edit_tree_layout(edit_tree_t *tree, edit_rect_t viewport);
 
 typedef struct {
     edit_tnode_t **slots; // owned heap array (NULL = empty)
