@@ -139,36 +139,6 @@ edit_cursor_t tbuf_move_to_offset(const edit_tbuf_t *t, edit_cursor_t cursor, si
 edit_cursor_t tbuf_move_to_logical(const edit_tbuf_t *t, edit_cursor_t cursor, edit_point_t pos);
 edit_cursor_t tbuf_goto_line_start(const edit_tbuf_t *t, edit_cursor_t cursor, int32_t y);
 
-bool edit_tbuf_selection_range(edit_tbuf_t *t, edit_cursor_t *out_beg, edit_cursor_t *out_end) {
-    if (out_beg != NULL) {
-        memset(out_beg, 0, sizeof *out_beg);
-    }
-    if (out_end != NULL) {
-        memset(out_end, 0, sizeof *out_end);
-    }
-    if (t == NULL || !t->has_selection) {
-        return false;
-    }
-    edit_point_t pts[2] = {t->sel_beg, t->sel_end};
-    if (edit_point_cmp(pts[0], pts[1]) > 0) {
-        edit_point_t tmp = pts[0];
-        pts[0] = pts[1];
-        pts[1] = tmp;
-    }
-    edit_cursor_t beg = tbuf_move_to_logical(t, t->cursor, pts[0]);
-    edit_cursor_t end = tbuf_move_to_logical(t, beg, pts[1]);
-    if (beg.offset >= end.offset) {
-        return false;
-    }
-    if (out_beg != NULL) {
-        *out_beg = beg;
-    }
-    if (out_end != NULL) {
-        *out_end = end;
-    }
-    return true;
-}
-
 edit_cursor_t tbuf_goto_line_start(const edit_tbuf_t *t, edit_cursor_t cursor, int32_t y) {
     edit_cursor_t result = cursor;
     bool seek_to_start = true;
