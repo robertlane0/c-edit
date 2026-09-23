@@ -1,0 +1,124 @@
+#ifndef EDIT_TREE_H
+#define EDIT_TREE_H
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#include "edit/arena.h"
+#include "edit/helpers.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// UI tree core (cf. Rust tui::Tree/Node/NodeMap). Nodes live in a caller
+// arena (no destructors needed); links are stable pointers. Single-threaded.
+#define EDIT_ROOT_ID UINT64_C(0x14057B7EF767814F)
+
+typedef enum {
+    EDIT_POS_STRETCH,
+    EDIT_POS_LEFT,
+    EDIT_POS_CENTER,
+    EDIT_POS_RIGHT,
+} edit_position_t;
+
+typedef struct {
+    bool has_float;
+    float gravity_x;
+    float gravity_y;
+    float offset_x;
+    float offset_y;
+} edit_float_attr_t;
+
+typedef struct {
+    edit_float_attr_t float_attr;
+    edit_position_t position;
+    edit_rect_t padding;
+    uint32_t bg;
+    uint32_t fg;
+    bool reverse;
+    bool bordered;
+    bool focusable;
+    bool focus_well;
+    bool focus_void;
+} edit_node_attr_t;
+
+typedef struct edit_tnode {
+    struct edit_tnode *prev;
+    struct edit_tnode *next;
+    struct edit_tnode *stack_parent;
+    uint64_t id;
+    const char *classname;
+    struct edit_tnode *parent;
+    size_t depth;
+    struct edit_tnode *sib_prev;
+    struct edit_tnode *sib_next;
+    struct edit_tnode *child_first;
+    struct edit_tnode *child_last;
+    size_t child_count;
+    edit_node_attr_t attributes;
+    edit_size_t intrinsic_size;
+    bool intrinsic_set;
+    edit_rect_t outer;
+    edit_rect_t inner;
+    edit_rect_t outer_clipped;
+    edit_rect_t inner_clipped;
+} edit_tnode_t;
+
+typedef struct {
+    edit_arena_t *arena;
+    edit_tnode_t *tail;
+    edit_tnode_t *root_first;
+    edit_tnode_t *root_last;
+    edit_tnode_t *last_node;
+    edit_tnode_t *current_node;
+    size_t count;
+    uint64_t checksum;
+    // Debug duplicate-ID tracking (always on; cheap for small trees).
+    uint64_t *seen_ids;
+    size_t seen_len;
+    size_t seen_cap;
+    uint64_t id_mixin;
+    bool has_mixin;
+} edit_tree_t;
+
+void edit_tree_init(edit_tree_t *t, edit_arena_t *arena);
+void edit_tree_destroy(edit_tree_t *t);
+// Begins a child block with parent-derived ID (cf. Context::block_begin).
+// Returns NULL on OOM (or duplicate ID in any build; asserts in debug).
+edit_tnode_t *edit_tree_block_begin(edit_tree_t *t, const char *classname);
+void edit_tree_block_end(edit_tree_t *t);
+// Extra uniqueness for the next block (lists of same-class items).
+void edit_tree_id_mixin(edit_tree_t *t, uint64_t id);
+// Detaches node to the root list under anchor (NULL = depth 0).
+void edit_tree_to_root(edit_tree_t *t, edit_tnode_t *node, edit_tnode_t *anchor);
+
+typedef enum {
+    EDIT_VISIT_CONTINUE,
+    EDIT_VISIT_SKIP,
+    EDIT_VISIT_STOP,
+} edit_visit_t;
+
+typedef edit_visit_t (*edit_visit_fn)(edit_tnode_t *node, void *ctx);
+// Depth-first wraparound traversal from start within root.
+void edit_tree_visit(edit_tnode_t *root, edit_tnode_t *start, bool forward, edit_visit_fn cb,
+                     void *ctx);
+
+typedef struct {
+    edit_tnode_t **slots; // owned heap array (NULL = empty)
+    size_t slots_count;
+    size_t shift;
+    uint64_t mask;
+} edit_nodemap_t;
+
+// 4x slots for 25% fill; false on OOM. Heap-owned; destroy frees.
+bool edit_nodemap_build(edit_nodemap_t *m, edit_tree_t *tree);
+void edit_nodemap_destroy(edit_nodemap_t *m);
+edit_tnode_t *edit_nodemap_get(edit_nodemap_t *m, uint64_t id);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

@@ -39,6 +39,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | framebuffer/tui/input | Not assessed | migration | syscalls; concurrency | TBD |
 | framebuffer | C validated | migration | diff render, wide glyphs | byte-exact VT |
 | input | C validated | migration | SGR/x10/paste quirks | differential events |
+| tui (tree core) | C validated | migration | arena nodes, hashmap, DFS | Rust ID chains |
 | vt (parser) | C validated | migration | DCS quirk mirrored | differential streams |
 | sys (rest: console, files, icu-load) | Not assessed | migration | platform ABI | TBD |
 | sys (unix tty) | C validated | migration | PTY-tested poll/modes | read/write/resize |
@@ -73,6 +74,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - tbuf render: 21 checks, byte-exact VT incl. margin/ruler/select, ASan/NDEBUG clean.
 - fb: 33 checks, byte-exact VT diff output, ASan/NDEBUG clean.
 - input: 122 checks, differential key/mouse/paste/resize events, ASan/NDEBUG clean.
+- tree: 37 checks, Rust ID chains + traversal/map semantics, ASan/NDEBUG clean.
 - tty: 39 checks, PTY-backed modes/poll/resize/file-id/lang, ASan/NDEBUG clean.
 - Notable: upstream find_and_replace_all loops forever (stale ICU chunks
   after setUText); C refreshes the provider window on set_text and terminates.
