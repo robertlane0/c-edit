@@ -1,5 +1,9 @@
 # Safe C build (C17, strict warnings).
 CC ?= cc
+# Formatting is version-pinned: CI installs clang-format 22.1.8 (see
+# .github/workflows/c.yml) because different clang-format majors disagree on
+# spacing around casts/unary minus in macros.
+CLANG_FORMAT ?= clang-format
 CSTD = -std=c17
 WARN = -Wall -Wextra -Wpedantic -Werror -Wconversion -Wsign-conversion -Wnull-dereference -Wdouble-promotion -Wformat=2
 INCLUDES = -Ic/include
@@ -17,7 +21,7 @@ TEST_BIN = $(patsubst c/tests/test_%.c,$(BUILD)/test_%,$(TEST_SRC))
 LIB = $(BUILD)/libedit_c.a
 BIN = $(BUILD)/edit
 
-.PHONY: all release release-test test asan ubsan tsan cppcheck tidy format-check bench clean
+.PHONY: all release release-test test asan ubsan tsan cppcheck tidy format format-check bench clean
 
 all: $(LIB) $(BIN)
 
@@ -71,8 +75,12 @@ cppcheck:
 tidy:
 	clang-tidy c/src/*.c c/tests/*.c -- $(INCLUDES) $(CSTD) 2>/dev/null || true
 
+format:
+	$(CLANG_FORMAT) -i c/src/*.c c/src/bin/*.c c/include/edit/*.h c/tests/*.c c/bench/*.c
+
 format-check:
-	clang-format --dry-run --Werror c/src/*.c c/src/bin/*.c c/include/edit/*.h c/tests/*.c c/bench/*.c
+	$(CLANG_FORMAT) --version
+	$(CLANG_FORMAT) --dry-run --Werror c/src/*.c c/src/bin/*.c c/include/edit/*.h c/tests/*.c c/bench/*.c
 
 $(BUILD) $(BUILD)/obj:
 	mkdir -p $@

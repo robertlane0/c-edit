@@ -171,7 +171,7 @@ bool edit_astring_push_repeat(edit_astring_t *s, uint32_t cp, size_t n) {
     }
     // Quadratic duplication like Rust push_repeat.
     size_t initial = s->vec.len;
-    if (n > ((size_t)-1 - initial) / clen) {
+    if (n > ((size_t)(-1) - initial) / clen) {
         return false;
     }
     size_t final_len = initial + clen * n;
@@ -214,13 +214,13 @@ bool edit_astring_replace_range(edit_astring_t *s, size_t beg, size_t end, const
 
 size_t edit_astring_find(const edit_astring_t *s, const char *needle, size_t needlelen) {
     if (s == NULL || needle == NULL) {
-        return (size_t)-1;
+        return (size_t)(-1);
     }
     if (needlelen == 0) {
         return 0;
     }
     if (needlelen > s->vec.len) {
-        return (size_t)-1;
+        return (size_t)(-1);
     }
     const uint8_t *hay = s->vec.data;
     size_t limit = s->vec.len - needlelen;
@@ -228,7 +228,7 @@ size_t edit_astring_find(const edit_astring_t *s, const char *needle, size_t nee
     while (i <= limit) {
         const void *hit = memchr(hay + i, (uint8_t)needle[0], limit - i + 1);
         if (hit == NULL) {
-            return (size_t)-1;
+            return (size_t)(-1);
         }
         i = (size_t)((const uint8_t *)hit - hay);
         if (memcmp(hay + i, needle, needlelen) == 0) {
@@ -236,7 +236,7 @@ size_t edit_astring_find(const edit_astring_t *s, const char *needle, size_t nee
         }
         ++i;
     }
-    return (size_t)-1;
+    return (size_t)(-1);
 }
 
 bool edit_astring_replace_once(edit_astring_t *s, const char *old, size_t oldlen, const char *rep,
@@ -245,7 +245,7 @@ bool edit_astring_replace_once(edit_astring_t *s, const char *old, size_t oldlen
         return false;
     }
     size_t at = edit_astring_find(s, old, oldlen);
-    if (at == (size_t)-1) {
+    if (at == (size_t)(-1)) {
         return true; // no match, like Rust
     }
     return edit_astring_replace_range(s, at, at + oldlen, rep, replen);

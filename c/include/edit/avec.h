@@ -43,7 +43,7 @@ extern "C" {
         if (v == NULL || v->arena == NULL) {                                                       \
             return false;                                                                          \
         }                                                                                          \
-        if (additional > (size_t)-1 - v->len) {                                                    \
+        if (additional > (size_t)(-1) - v->len) {                                                  \
             return false;                                                                          \
         }                                                                                          \
         size_t need = v->len + additional;                                                         \
@@ -52,13 +52,13 @@ extern "C" {
         }                                                                                          \
         size_t grown = v->cap != 0 ? v->cap : 8;                                                   \
         while (grown < need) {                                                                     \
-            if (grown > (size_t)-1 / 2) {                                                          \
+            if (grown > (size_t)(-1) / 2) {                                                        \
                 grown = need;                                                                      \
                 break;                                                                             \
             }                                                                                      \
             grown *= 2;                                                                            \
         }                                                                                          \
-        if (grown > (size_t)-1 / sizeof(T)) {                                                      \
+        if (grown > (size_t)(-1) / sizeof(T)) {                                                    \
             return false;                                                                          \
         }                                                                                          \
         void *dst = NULL;                                                                          \

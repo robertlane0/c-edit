@@ -102,20 +102,20 @@ static void gap_enlarge(edit_gap_t *g, size_t len) {
     size_t gap_chunk = g->is_small ? GAP_SMALL_GAP : GAP_LARGE_GAP;
     size_t alloc_chunk = g->is_small ? GAP_SMALL_ALLOC : GAP_LARGE_ALLOC;
 
-    if (len > (size_t)-1 - gap_chunk) {
+    if (len > (size_t)(-1) - gap_chunk) {
         return; // saturates: gap stays small, like Rust OOM path
     }
     size_t gap_new = round_up(len + gap_chunk, gap_chunk);
     if (gap_new < len) {
         return;
     }
-    if (g->text_len > (size_t)-1 - gap_new) {
+    if (g->text_len > (size_t)(-1) - gap_new) {
         return;
     }
     size_t bytes_new = g->text_len + gap_new;
 
     if (bytes_new > g->commit) {
-        if (bytes_new > (size_t)-1 - (alloc_chunk - 1)) {
+        if (bytes_new > (size_t)(-1) - (alloc_chunk - 1)) {
             return;
         }
         size_t rounded = round_up(bytes_new, alloc_chunk);
@@ -369,7 +369,7 @@ bool edit_gap_copy_from(edit_gap_t *g, const edit_doc_t *src) {
         if (chunk == NULL) {
             chunk_len = 0;
         }
-        if (!edit_gap_replace(g, off, (size_t)-1, chunk, chunk_len)) {
+        if (!edit_gap_replace(g, off, (size_t)(-1), chunk, chunk_len)) {
             return true; // changed (best effort on OOM)
         }
         off += chunk_len;
@@ -392,15 +392,15 @@ bool edit_gap_copy_into(const edit_gap_t *g, edit_doc_t *dst) {
         if (chunk == NULL || chunk_len == 0) {
             break;
         }
-        if (!dst->replace(dst->ctx, beg, (size_t)-1, chunk, chunk_len)) {
+        if (!dst->replace(dst->ctx, beg, (size_t)(-1), chunk, chunk_len)) {
             return false;
         }
-        beg = (size_t)-1;
+        beg = (size_t)(-1);
         off += chunk_len;
     }
     // Empty source still clears the destination once (mirrors Rust).
     if (off == 0) {
-        dst->replace(dst->ctx, 0, (size_t)-1, NULL, 0);
+        dst->replace(dst->ctx, 0, (size_t)(-1), NULL, 0);
     }
     return true;
 }

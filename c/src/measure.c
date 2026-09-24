@@ -314,7 +314,7 @@ edit_cursor_t edit_measure_goto_logical(edit_measure_t *m, edit_point_t target) 
     }
     edit_point_t max = {INT32_MAX, INT32_MAX};
     m->cursor =
-        measure_forward(m->tab_size, m->wrap_col, (size_t)-1, target, max, m->cursor, m->doc);
+        measure_forward(m->tab_size, m->wrap_col, (size_t)(-1), target, max, m->cursor, m->doc);
     return m->cursor;
 }
 
@@ -326,7 +326,7 @@ edit_cursor_t edit_measure_goto_visual(edit_measure_t *m, edit_point_t target) {
     }
     edit_point_t max = {INT32_MAX, INT32_MAX};
     m->cursor =
-        measure_forward(m->tab_size, m->wrap_col, (size_t)-1, max, target, m->cursor, m->doc);
+        measure_forward(m->tab_size, m->wrap_col, (size_t)(-1), max, target, m->cursor, m->doc);
     return m->cursor;
 }
 

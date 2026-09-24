@@ -18,14 +18,14 @@ typedef struct {
 } render_line_t;
 
 static bool line_reserve(render_line_t *l, size_t additional) {
-    if (additional > (size_t)-1 - l->len) {
+    if (additional > (size_t)(-1) - l->len) {
         return false;
     }
     size_t need = l->len + additional;
     if (need > l->cap) {
         size_t grown = l->cap != 0 ? l->cap : 64;
         while (grown < need) {
-            if (grown > (size_t)-1 / 2) {
+            if (grown > (size_t)(-1) / 2) {
                 grown = need;
                 break;
             }

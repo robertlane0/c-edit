@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 // Case folding via libicuuc (dlopen); ASCII-lowercase fallback if missing.
-// snprintf-style: returns needed length excl. NUL, (size_t)-1 on bad args.
+// snprintf-style: returns needed length excl. NUL, (size_t)(-1) on bad args.
 size_t edit_fold_case(char *dst, size_t cap, const char *src, size_t len);
 bool edit_icu_available(void);
 

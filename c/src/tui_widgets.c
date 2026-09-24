@@ -19,14 +19,14 @@ static bool text_append(edit_ctx_t *ctx, edit_tnode_t *node, const char *text, s
         return false;
     }
     edit_arena_t *arena = ctx->tree.arena;
-    if (node->text_len > (size_t)-1 - len) {
+    if (node->text_len > (size_t)(-1) - len) {
         return false;
     }
     size_t need = node->text_len + len;
     if (need > node->text_cap) {
         size_t grown = node->text_cap != 0 ? node->text_cap : 32;
         while (grown < need) {
-            if (grown > (size_t)-1 / 2) {
+            if (grown > (size_t)(-1) / 2) {
                 grown = need;
                 break;
             }
@@ -284,7 +284,7 @@ void edit_ctx_inherit_focus(edit_ctx_t *ctx) {
         ctx->needs_settling = true;
         // Push our id (focus path grows; may contain duplicates like Rust).
         edit_tui_t *t = ctx->tui;
-        if (t->focus_len < (size_t)-1) {
+        if (t->focus_len < (size_t)(-1)) {
             // Reuse the path helper via a temporary node walk.
             size_t cap = t->focus_cap;
             if (t->focus_len == cap) {
@@ -476,7 +476,7 @@ bool edit_ctx_styled_fg(edit_ctx_t *ctx, uint32_t fg) {
     if (node->content_kind != 3) {
         return false;
     }
-    size_t last_off = (size_t)-1;
+    size_t last_off = (size_t)(-1);
     uint32_t last_fg = 0;
     uint8_t last_attr = 0;
     if (node->text_nchunks > 0) {
@@ -498,7 +498,7 @@ bool edit_ctx_styled_attr(edit_ctx_t *ctx, uint8_t attr) {
     if (node->content_kind != 3) {
         return false;
     }
-    size_t last_off = (size_t)-1;
+    size_t last_off = (size_t)(-1);
     uint32_t last_fg = 0;
     uint8_t last_attr = 0;
     if (node->text_nchunks > 0) {
@@ -1861,7 +1861,7 @@ static bool strbuf_replace(void *vctx, size_t beg, size_t end, const uint8_t *sr
     if (need > s->cap) {
         size_t grown = s->cap != 0 ? s->cap : 32;
         while (grown < need) {
-            if (grown > (size_t)-1 / 2) {
+            if (grown > (size_t)(-1) / 2) {
                 grown = need;
                 break;
             }
@@ -1902,7 +1902,7 @@ bool edit_ctx_editline_str(edit_ctx_t *ctx, const char *classname, char **pbuf, 
     *pcap = cur.cap;
     if (*pbuf != NULL) {
         // Keep NUL termination for C-string use.
-        if (cur.len == (size_t)-1) {
+        if (cur.len == (size_t)(-1)) {
             return false;
         }
         if (cur.len + 1 > cur.cap) {

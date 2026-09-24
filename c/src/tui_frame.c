@@ -234,7 +234,7 @@ static bool move_focus(edit_tui_t *t, uint32_t key) {
         root = root->parent;
     }
     bool forward = true;
-    size_t min_depth = (size_t)-1;
+    size_t min_depth = (size_t)(-1);
     if (is_tab) {
         forward = key == (uint32_t)EDIT_VK_TAB;
     } else if (is_updown) {

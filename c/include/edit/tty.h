@@ -13,7 +13,7 @@ extern "C" {
 
 // Unix terminal core (cf. Rust sys::unix console parts). Single-threaded;
 // global state mirrors Rust's STATE. Times in ms; -1 means wait forever.
-#define EDIT_TTY_WAIT_FOREVER ((int64_t)-1)
+#define EDIT_TTY_WAIT_FOREVER ((int64_t)(-1))
 
 // Opens /dev/tty when stdin is redirected; records fd flags. 0 ok, -1 error.
 int edit_tty_init(edit_error_t *err);

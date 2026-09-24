@@ -20,7 +20,7 @@ static int expect_text(edit_gap_t *g, const char *want) {
     size_t n = strlen(want);
     uint8_t buf[256];
     memset(buf, 0xAA, sizeof buf);
-    size_t got = edit_gap_extract(g, 0, (size_t)-1, buf, sizeof buf);
+    size_t got = edit_gap_extract(g, 0, (size_t)(-1), buf, sizeof buf);
     ++checks;
     if (got != n || memcmp(buf, want, n) != 0) {
         fprintf(stderr, "FAIL %d: got %zu want %zu\n", __LINE__, got, n);
@@ -31,7 +31,7 @@ static int expect_text(edit_gap_t *g, const char *want) {
 }
 
 static int build(edit_gap_t *g, const char *text) {
-    if (!edit_gap_replace(g, 0, (size_t)-1, (const uint8_t *)text, strlen(text))) {
+    if (!edit_gap_replace(g, 0, (size_t)(-1), (const uint8_t *)text, strlen(text))) {
         fprintf(stderr, "FAIL %d: build failed\n", __LINE__);
         return 1;
     }
@@ -149,8 +149,8 @@ int main(void) {
         edit_gap_t g;
         CHECK(edit_gap_init(&g, true) == 0);
         size_t gap = 0;
-        uint8_t *p = edit_gap_allocate(&g, 0, (size_t)-1, 0, &gap);
-        CHECK(p == NULL || gap < (size_t)-1);
+        uint8_t *p = edit_gap_allocate(&g, 0, (size_t)(-1), 0, &gap);
+        CHECK(p == NULL || gap < (size_t)(-1));
         CHECK(edit_gap_replace(&g, 0, 0, (const uint8_t *)"x", 1));
         CHECK(expect_text(&g, "x") == 0);
         edit_gap_destroy(&g);

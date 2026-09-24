@@ -35,14 +35,14 @@ static bool buf_append(uint8_t **ptr, size_t *len, size_t *cap, const uint8_t *s
     if (src == NULL) {
         return false;
     }
-    if (*len > (size_t)-1 - n) {
+    if (*len > (size_t)(-1) - n) {
         return false;
     }
     size_t need = *len + n;
     if (need > *cap) {
         size_t grown = *cap != 0 ? *cap : 64;
         while (grown < need) {
-            if (grown > (size_t)-1 / 2) {
+            if (grown > (size_t)(-1) / 2) {
                 grown = need;
                 break;
             }
@@ -187,14 +187,14 @@ void tbuf_edit_delete(edit_tbuf_t *t, edit_cursor_t to) {
         size_t old = undo->deleted_len;
         size_t count = to.offset - off;
         if (count > 0) {
-            if (old > (size_t)-1 - count) {
+            if (old > (size_t)(-1) - count) {
                 return;
             }
             size_t need = old + count;
             if (need > undo->deleted_cap) {
                 size_t grown = undo->deleted_cap != 0 ? undo->deleted_cap : 64;
                 while (grown < need) {
-                    if (grown > (size_t)-1 / 2) {
+                    if (grown > (size_t)(-1) / 2) {
                         grown = need;
                         break;
                     }

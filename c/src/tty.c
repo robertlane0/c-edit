@@ -153,13 +153,13 @@ static bool buf_append(uint8_t **buf, size_t *len, size_t *cap, const uint8_t *s
     if (n == 0) {
         return true;
     }
-    if (*len > (size_t)-1 - n) {
+    if (*len > (size_t)(-1) - n) {
         return false;
     }
     if (*len + n > *cap) {
         size_t grown = *cap != 0 ? *cap : 256;
         while (grown < *len + n) {
-            if (grown > (size_t)-1 / 2) {
+            if (grown > (size_t)(-1) / 2) {
                 grown = *len + n;
                 break;
             }

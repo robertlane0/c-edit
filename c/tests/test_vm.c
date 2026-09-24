@@ -36,11 +36,11 @@ int main(void) {
 
     // Absurd size fails with Sys(ENOMEM), matching Rust.
     uint8_t *bad = (uint8_t *)0x1234;
-    CHECK(!edit_vm_reserve((size_t)-1, &bad, &err));
+    CHECK(!edit_vm_reserve((size_t)(-1), &bad, &err));
     CHECK(bad == NULL);
     CHECK(edit_error_equal(err, edit_error_sys((uint32_t)ENOMEM)));
     // NULL out_err still reports failure.
-    CHECK(!edit_vm_reserve((size_t)-1, &bad, NULL));
+    CHECK(!edit_vm_reserve((size_t)(-1), &bad, NULL));
 
     printf("test_vm: %d checks passed\n", checks);
     return 0;

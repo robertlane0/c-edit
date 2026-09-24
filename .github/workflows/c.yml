@@ -21,7 +21,9 @@ jobs:
         run: sudo apt-get install cppcheck
           make cppcheck
       - name: Format
-        run: make format-check
+        run: |
+          python3 -m pip install --quiet "clang-format==22.1.8"
+          make format-check
       - name: Rust parity
         run: cargo +nightly test
       - name: PTY differential (Rust vs C)

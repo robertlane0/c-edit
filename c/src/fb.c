@@ -75,14 +75,14 @@ static bool line_splice(fb_line_t *line, size_t del_beg, size_t del_end, const u
     size_t total_add = src_len + pad_beg + pad_end;
     size_t total_del = del_end > del_beg ? del_end - del_beg : 0;
     size_t tail = line->len > del_end ? line->len - del_end : 0;
-    if (total_add > (size_t)-1 - (line->len - total_del)) {
+    if (total_add > (size_t)(-1) - (line->len - total_del)) {
         return false;
     }
     size_t need = line->len - total_del + total_add;
     if (need > line->cap) {
         size_t grown = line->cap != 0 ? line->cap : 64;
         while (grown < need) {
-            if (grown > (size_t)-1 / 2) {
+            if (grown > (size_t)(-1) / 2) {
                 grown = need;
                 break;
             }
@@ -117,13 +117,13 @@ static bool out_append(fb_out_t *out, const void *src, size_t n) {
     if (src == NULL) {
         return false;
     }
-    if (n > (size_t)-1 - out->len) {
+    if (n > (size_t)(-1) - out->len) {
         return false;
     }
     if (out->len + n > out->cap) {
         size_t grown = out->cap != 0 ? out->cap : 256;
         while (grown < out->len + n) {
-            if (grown > (size_t)-1 / 2) {
+            if (grown > (size_t)(-1) / 2) {
                 grown = out->len + n;
                 break;
             }
@@ -299,8 +299,8 @@ static size_t area_cells(edit_size_t size) {
     }
     size_t w = (size_t)size.width;
     size_t h = (size_t)size.height;
-    if (w > (size_t)-1 / h) {
-        return (size_t)-1;
+    if (w > (size_t)(-1) / h) {
+        return (size_t)(-1);
     }
     return w * h;
 }
@@ -308,7 +308,7 @@ static size_t area_cells(edit_size_t size) {
 // (Re)allocates a buffer for size; false on OOM. Preserves nothing.
 static bool buffer_alloc(struct edit_fb_buffer *b, edit_size_t size) {
     size_t cells = area_cells(size);
-    if (cells == (size_t)-1) {
+    if (cells == (size_t)(-1)) {
         return false;
     }
     size_t height = size.height > 0 ? (size_t)size.height : 0;

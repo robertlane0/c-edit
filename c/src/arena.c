@@ -18,7 +18,7 @@ int edit_arena_init(edit_arena_t *a, size_t capacity) {
         return -1;
     }
     size_t cap = capacity > 1 ? capacity : 1;
-    if (cap > (size_t)-1 - (EDIT_ARENA_CHUNK - 1)) {
+    if (cap > (size_t)(-1) - (EDIT_ARENA_CHUNK - 1)) {
         return -1;
     }
     cap = round_chunk(cap);
@@ -80,7 +80,7 @@ void edit_arena_reset(edit_arena_t *a, size_t to) {
     if (a->offset > to && a->base != NULL) {
         size_t end = a->offset + 128;
         if (end < a->offset) {
-            end = (size_t)-1; // saturate on overflow
+            end = (size_t)(-1); // saturate on overflow
         }
         if (end > a->commit) {
             end = a->commit;
@@ -104,17 +104,17 @@ bool edit_arena_alloc(edit_arena_t *a, size_t bytes, size_t align, void **out) {
     if (!is_pow2(align)) {
         return false;
     }
-    if (align - 1 > (size_t)-1 - a->offset) {
+    if (align - 1 > (size_t)(-1) - a->offset) {
         return false;
     }
     size_t beg = (a->offset + align - 1) & ~(align - 1);
-    if (bytes > (size_t)-1 - beg) {
+    if (bytes > (size_t)(-1) - beg) {
         return false;
     }
     size_t end = beg + bytes;
 
     if (end > a->commit) {
-        if (end > (size_t)-1 - (EDIT_ARENA_CHUNK - 1)) {
+        if (end > (size_t)(-1) - (EDIT_ARENA_CHUNK - 1)) {
             return false;
         }
         size_t commit_new = round_chunk(end);
@@ -133,7 +133,7 @@ bool edit_arena_alloc(edit_arena_t *a, size_t bytes, size_t align, void **out) {
     {
         size_t fill = end + 128;
         if (fill < end) {
-            fill = (size_t)-1;
+            fill = (size_t)(-1);
         }
         if (fill > a->commit) {
             fill = a->commit;

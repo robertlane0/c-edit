@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define EDIT_PATH_ERR ((size_t)-1)
+#define EDIT_PATH_ERR ((size_t)(-1))
 
 size_t edit_path_normalize(char *dst, size_t cap, const char *path) {
     if (path == NULL || path[0] != '/') {

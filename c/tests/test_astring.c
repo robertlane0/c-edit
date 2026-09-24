@@ -110,7 +110,7 @@ int main(void) {
     CHECK(edit_astring_replace_range(&s, 6, 11, "there", 5));
     CHECK(expect_bytes(&s, "hello there", 11) == 0);
     CHECK(edit_astring_find(&s, "there", 5) == 6);
-    CHECK(edit_astring_find(&s, "zzz", 3) == (size_t)-1);
+    CHECK(edit_astring_find(&s, "zzz", 3) == (size_t)(-1));
     CHECK(edit_astring_find(&s, "", 0) == 0);
     CHECK(edit_astring_replace_once(&s, "l", 1, "L", 1));
     CHECK(expect_bytes(&s, "heLlo there", 11) == 0);

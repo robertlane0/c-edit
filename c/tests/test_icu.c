@@ -78,7 +78,7 @@ int main(void) {
     CHECK(small[3] == '\0' && memcmp(small, "abc", 3) == 0);
 
     // Bad args.
-    CHECK(edit_fold_case(small, sizeof small, NULL, 3) == (size_t)-1);
+    CHECK(edit_fold_case(small, sizeof small, NULL, 3) == (size_t)(-1));
 
     // Port of Rust test_compare_strings_ascii.
     CHECK(expect_cmp((const uint8_t *)"", 0, (const uint8_t *)"", 0, 0) == 0);

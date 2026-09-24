@@ -64,12 +64,12 @@ int main(void) {
     CHECK(expect_norm("/a/b/c/d/e/f/../../..", "/a/b/c") == 0);
 
     // Errors: NULL, empty, relative.
-    CHECK(edit_path_normalize(NULL, 0, NULL) == (size_t)-1);
+    CHECK(edit_path_normalize(NULL, 0, NULL) == (size_t)(-1));
     char tmp[8];
-    CHECK(edit_path_normalize(tmp, sizeof tmp, NULL) == (size_t)-1);
-    CHECK(edit_path_normalize(tmp, sizeof tmp, "") == (size_t)-1);
-    CHECK(edit_path_normalize(tmp, sizeof tmp, "a/b") == (size_t)-1);
-    CHECK(edit_path_normalize(tmp, sizeof tmp, "./a") == (size_t)-1);
+    CHECK(edit_path_normalize(tmp, sizeof tmp, NULL) == (size_t)(-1));
+    CHECK(edit_path_normalize(tmp, sizeof tmp, "") == (size_t)(-1));
+    CHECK(edit_path_normalize(tmp, sizeof tmp, "a/b") == (size_t)(-1));
+    CHECK(edit_path_normalize(tmp, sizeof tmp, "./a") == (size_t)(-1));
 
     // Truncation stays NUL-terminated and reports full length.
     char small[4];

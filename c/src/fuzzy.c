@@ -29,7 +29,7 @@ static uint32_t *decode(const uint8_t *s, size_t n, size_t *out_count) {
 // Fold to a fresh NUL-terminated buffer; NULL on failure.
 static char *fold(const char *s, size_t n, size_t *out_len) {
     size_t need = edit_fold_case(NULL, 0, s, n);
-    if (need == (size_t)-1) {
+    if (need == (size_t)(-1)) {
         return NULL;
     }
     char *buf = (char *)malloc(need + 1);
@@ -159,7 +159,7 @@ int edit_score_fuzzy(edit_arena_t *arena, const uint8_t *hay, size_t haylen, con
     }
     // Folded arrays pair by raw index; clamp for safety (Rust assumes
     // folding never shrinks, which holds for real inputs).
-    if (qlen == 0 || tlen > (size_t)-1 / qlen / sizeof *scores) {
+    if (qlen == 0 || tlen > (size_t)(-1) / qlen / sizeof *scores) {
         goto done;
     }
     size_t area = tlen * qlen;

@@ -404,7 +404,7 @@ bool edit_app_parse_goto(const char *path, const char **out_path, size_t *out_pa
         }
         any = true;
         unsigned digit = (unsigned)(b - (uint8_t)'0');
-        if (num > ((size_t)-1 - digit) / 10) {
+        if (num > ((size_t)(-1) - digit) / 10) {
             return false;
         }
         num = num * 10 + digit;
@@ -433,7 +433,7 @@ bool edit_app_parse_goto(const char *path, const char **out_path, size_t *out_pa
             }
             fok = true;
             unsigned digit = (unsigned)(b - (uint8_t)'0');
-            if (first > ((size_t)-1 - digit) / 10) {
+            if (first > ((size_t)(-1) - digit) / 10) {
                 ok = false;
                 break;
             }

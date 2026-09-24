@@ -156,7 +156,7 @@ int main(void) {
         edit_tbuf_save_to(&t3, &ddoc);
         CHECK(!edit_tbuf_is_dirty(&t3));
         uint8_t buf[64];
-        size_t n = edit_gap_extract(&dst, 0, (size_t)-1, buf, sizeof buf);
+        size_t n = edit_gap_extract(&dst, 0, (size_t)(-1), buf, sizeof buf);
         CHECK(n == edit_tbuf_len(&t3));
         // t3 currently holds "line1\nline2\nline3\n" (18 bytes).
         CHECK(n == 18 && memcmp(buf, "line1\nline2\nline3\n", 18) == 0);

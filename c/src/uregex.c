@@ -337,7 +337,7 @@ void edit_utext_destroy(edit_utext_t *t) {
 
 // UTF-8 pattern to UTF-16 with surrogate splits.
 static uint16_t *pattern_utf16(const char *pattern, size_t plen, size_t *out_len) {
-    if (plen > ((size_t)-1) / (2 * sizeof(uint16_t)) - 1) {
+    if (plen > ((size_t)(-1)) / (2 * sizeof(uint16_t)) - 1) {
         return NULL;
     }
     uint16_t *out = (uint16_t *)malloc((plen + 1) * 2 * sizeof *out);

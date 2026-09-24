@@ -81,7 +81,7 @@ int main(void) {
     // Over-capacity and invalid args fail cleanly.
     void *big = NULL;
     CHECK(!edit_arena_alloc(&a, edit_arena_capacity(&a) + 1, 1, &big));
-    CHECK(!edit_arena_alloc(&a, (size_t)-1, 1, &big));
+    CHECK(!edit_arena_alloc(&a, (size_t)(-1), 1, &big));
     CHECK(!edit_arena_alloc(&a, 8, 0, &big));
     CHECK(!edit_arena_alloc(&a, 8, 3, &big));
     CHECK(!edit_arena_alloc(NULL, 8, 1, &big));

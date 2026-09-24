@@ -22,14 +22,14 @@ void edit_text_destroy(edit_text_content_t *c) {
 }
 
 static bool text_reserve(edit_text_content_t *c, size_t additional) {
-    if (additional > (size_t)-1 - c->len) {
+    if (additional > (size_t)(-1) - c->len) {
         return false;
     }
     size_t need = c->len + additional;
     if (need > c->cap) {
         size_t grown = c->cap != 0 ? c->cap : 32;
         while (grown < need) {
-            if (grown > (size_t)-1 / 2) {
+            if (grown > (size_t)(-1) / 2) {
                 grown = need;
                 break;
             }
@@ -81,7 +81,7 @@ bool edit_text_set_fg(edit_text_content_t *c, uint32_t fg) {
     if (c == NULL) {
         return false;
     }
-    size_t last_off = (size_t)-1;
+    size_t last_off = (size_t)(-1);
     uint32_t last_fg = 0;
     uint8_t last_attr = 0;
     if (c->nchunks > 0) {
@@ -99,7 +99,7 @@ bool edit_text_set_attr(edit_text_content_t *c, uint8_t attr) {
     if (c == NULL) {
         return false;
     }
-    size_t last_off = (size_t)-1;
+    size_t last_off = (size_t)(-1);
     uint32_t last_fg = 0;
     uint8_t last_attr = 0;
     if (c->nchunks > 0) {

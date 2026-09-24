@@ -193,7 +193,7 @@ static size_t fold_ascii(char *dst, size_t cap, const char *src, size_t len) {
 
 size_t edit_fold_case(char *dst, size_t cap, const char *src, size_t len) {
     if (len > 0 && src == NULL) {
-        return (size_t)-1;
+        return (size_t)(-1);
     }
     if (src == NULL) {
         src = "";
@@ -344,7 +344,7 @@ size_t edit_icu_encodings(const char ***out) {
                 break;
             }
             if (n == cap) {
-                if (cap > (size_t)-1 / 2 / sizeof *list) {
+                if (cap > (size_t)(-1) / 2 / sizeof *list) {
                     break;
                 }
                 cap *= 2;
