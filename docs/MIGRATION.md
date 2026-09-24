@@ -87,16 +87,18 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - tuiframe: 47 checks, resize/focus/mouse/click/clipboard flows, ASan/NDEBUG clean.
 - twidgets: 69 checks, labels/buttons/modal/table/attrs/shortcuts, ASan/NDEBUG clean.
 - ta: 22 checks, scripted typing/nav/undo/editline parity, ASan/NDEBUG clean.
-- tlist/trender: 34 checks, list/scrollarea/modal widgets + node render pass,
-  byte-exact VT (labels, styled spans, list click/arrows, modal), ASan/UBSan clean.
+- tlist/trender: 48 checks, list/scrollarea/modal widgets + node render pass,
+  byte-exact VT (labels, styled spans, list click/arrows, modal, focused
+  editline text + cursor), ASan/UBSan clean.
 - tty: 39 checks, PTY-backed modes/poll/resize/file-id/lang, ASan/NDEBUG clean.
 - tmenu: 58 checks, menubar open/accelerators/checkbox glyphs + string editline
   round-trip, ASan/UBSan clean.
 - apploc: 13 checks + 8 full-table differential dumps vs the Rust module
   (en/de/ja/pt-br/zh/zh-hant/unknown), generator kept in `tools/gen_apploc.py`.
-- app: 147 checks, `:line:char` goto vectors from the Rust unit test, untitled
-  naming, file open/dedupe/save/reread, error ring, full frame draw (type,
-  Ctrl+S save, Ctrl+Q prompt), ASan/UBSan/NDEBUG clean.
+- app: 179 checks, `:line:char` goto vectors from the Rust unit test, untitled
+  naming, file open/dedupe/save/reread, error ring, absolute-argv handling,
+  margin growth past 10 lines, full frame draw (type, Ctrl+S save, Ctrl+Q
+  prompt), ASan/UBSan/NDEBUG clean.
 - editbin: 21 checks, PTY-driven `--help`/`--version`/interactive flows
   (setup handshake, render, type, unsaved-changes prompt, clean exit,
   alt-screen restore), ASan/UBSan clean.
@@ -137,6 +139,13 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 
 - Rust benchmarks in `benches/` via criterion; C benches pending.
 - Rule: no C slice claims perf without measured comparison.
+
+## Current status
+
+- C editor is feature-complete for the ported surface: 37 test binaries,
+  10784 assertions, plus the 53-scenario PTY differential against Rust.
+- Remaining work: performance benchmarks vs the Rust baseline, and removing
+  the Rust production path once the C binary is the shipped default.
 
 ## Gates (C)
 
