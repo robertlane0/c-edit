@@ -34,7 +34,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | unicode (utf8 decoder) | C validated | migration | WHATWG resync offsets | Rust vector parity |
 | unicode (tables) | C validated | migration | generated, bit-verified | lookup vectors |
 | unicode (measure) | C validated | migration | i64 compare guards | all 15 Rust tests |
-| simd (memchr2/memrchr2/memset) | C validated | migration | scalar first; SIMD needs benches | ports + guard-page tests |
+| simd (memchr2/memrchr2/memset) | C validated | migration | scalar + AVX2 dispatch | ports + guard-page tests + benches |
 | path (normalize, unix) | C validated | migration | windows deferred to sys slice | unix vectors + extras |
 | framebuffer/tui/input | Not assessed | migration | syscalls; concurrency | TBD |
 | framebuffer | C validated | migration | diff render, wide glyphs | byte-exact VT |
@@ -59,7 +59,8 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - base64: 234 checks, port of Rust `test_basic` + binary/error paths, ASan/UBSan clean.
 - apperr/helpers: 68 checks, metric output verified equal to Rust, ASan/UBSan clean.
 - oklab: 101 checks, Lab/blend/round-trip vs Rust refs, ASan/UBSan clean.
-- simd: 3164 checks, ports of memchr2/memrchr2/memset tests + mmap guard pages, ASan/UBSan clean.
+- simd: 3167 checks, ports of memchr2/memrchr2/memset tests + mmap guard pages,
+  AVX2 memchr2/memrchr2 fast paths, ASan/UBSan/NDEBUG clean, 0.65-0.84x of Rust.
 - utf8: 301 checks, 24 Rust-vector sequences incl. resync offsets, ASan/UBSan clean.
 - path: 98 checks, unix vectors + 15 extras verified equal to Rust, ASan/UBSan clean.
 - cell: 11 checks, borrow sequences in debug + release builds.
@@ -137,15 +138,53 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 
 ## Baseline perf
 
-- Rust benchmarks in `benches/` via criterion; C benches pending.
+`make bench` builds `c/bench/bench_core.c` with the optimized flags (-O3 -flto)
+and runs the same workloads as `benches/lib.rs`; `python3 tools/bench_compare.py`
+pairs the output with criterion. Measured on this machine (criterion: warmup 1s,
+30 samples, 2s measurement; C: best of 5 x 1M iterations, optimizer barriers,
+varying inputs). Ratios are C/Rust, lower is faster:
+
+| workload | Rust ns | C ns | C/Rust |
+|---|---|---|---|
+| hash/8 | 3.13 | 0.52 | 0.17x |
+| hash/16 | 2.78 | 0.63 | 0.23x |
+| hash/1024 | 45.1 | 31.6 | 0.70x |
+| oklab/srgb_to_oklab | 10.5 | 8.58 | 0.81x |
+| oklab/oklab_blend | 62.2 | 56.2 | 0.90x |
+| simd/memchr2/8 | 2.64 | 2.22 | 0.84x |
+| simd/memchr2/40 | 3.25 | 2.44 | 0.75x |
+| simd/memchr2/72 | 4.50 | 2.91 | 0.65x |
+| simd/memchr2/1032 | 29.9 | 22.3 | 0.74x |
+| simd/memset<u32>/8 | 2.80 | 1.58 | 0.56x |
+| simd/memset<u32>/40 | 3.79 | 2.21 | 0.58x |
+| simd/memset<u32>/72 | 3.68 | 2.52 | 0.68x |
+| simd/memset<u32>/1032 | 20.7 | 17.5 | 0.85x |
+| simd/memset<u8>/8 | 2.00 | 1.78 | 0.89x |
+| simd/memset<u8>/40 | 1.72 | 2.05 | 1.19x |
+| simd/memset<u8>/72 | 3.29 | 2.33 | 0.71x |
+| simd/memset<u8>/1032 | 11.7 | 6.46 | 0.55x |
+| unicode/goto_logical/basic | 11572 | 12763 | 1.10x |
+| unicode/goto_logical/word_wrap | 16366 | 14988 | 0.92x |
+| unicode/Utf8Chars/next | 4109 | 3789 | 0.92x |
+
+Notes:
+- Small-input hash/oklab ratios are not a real C advantage: criterion wraps
+  every input in `black_box` (a memory round-trip) while the C harness only
+  needs an optimizer barrier. Treat those rows as noise.
+- Two gaps were found and fixed with these benchmarks: `simd::memchr2` had no
+  AVX2 path in C (now runtime-dispatched, 0.65-0.84x of Rust), and the text
+  measurement engine was ~1.95x slower without LTO (now 0.92-1.10x).
+- `make release`/`release-test` use `-O3 -flto` to match criterion's
+  opt-level 3; the debug/ASan/UBSan gates keep the default `-O1`.
 - Rule: no C slice claims perf without measured comparison.
 
 ## Current status
 
 - C editor is feature-complete for the ported surface: 37 test binaries,
   10784 assertions, plus the 53-scenario PTY differential against Rust.
-- Remaining work: performance benchmarks vs the Rust baseline, and removing
-  the Rust production path once the C binary is the shipped default.
+- Performance: all 20 benchmark workloads are at or below 1.25x of Rust.
+- Remaining work: removing the Rust production path once the C binary is the
+  shipped default.
 
 ## Gates (C)
 

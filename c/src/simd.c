@@ -1,6 +1,66 @@
 #include "edit/simd.h"
 
+#include <stdint.h>
 #include <string.h>
+
+#if defined(__x86_64__) || defined(__i386__)
+#define EDIT_SIMD_X86 1
+#include <immintrin.h>
+#endif
+
+// AVX2 paths mirror Rust's runtime-dispatched memchr2/memrchr2 (x86 only).
+// Reads never cross the end of the buffer: 32-byte chunks are only loaded
+// while at least 32 bytes remain, and the tail is scanned byte-wise.
+#ifdef EDIT_SIMD_X86
+__attribute__((target("avx2"))) static size_t
+memchr2_avx2(uint8_t n1, uint8_t n2, const uint8_t *hay, size_t len, size_t offset) {
+    __m256i v1 = _mm256_set1_epi8((char)n1);
+    __m256i v2 = _mm256_set1_epi8((char)n2);
+    size_t i = offset;
+    while (len - i >= 32) {
+        __m256i v = _mm256_loadu_si256((const __m256i *)(const void *)(hay + i));
+        __m256i eq = _mm256_or_si256(_mm256_cmpeq_epi8(v, v1), _mm256_cmpeq_epi8(v, v2));
+        uint32_t mask = (uint32_t)_mm256_movemask_epi8(eq);
+        if (mask != 0) {
+            return i + (size_t)__builtin_ctz(mask);
+        }
+        i += 32;
+    }
+    while (i < len) {
+        if (hay[i] == n1 || hay[i] == n2) {
+            return i;
+        }
+        ++i;
+    }
+    return len;
+}
+
+__attribute__((target("avx2"))) static bool
+memrchr2_avx2(uint8_t n1, uint8_t n2, const uint8_t *hay, size_t len, size_t offset, size_t *out) {
+    (void)len;
+    __m256i v1 = _mm256_set1_epi8((char)n1);
+    __m256i v2 = _mm256_set1_epi8((char)n2);
+    size_t i = offset;
+    while (i >= 32) {
+        __m256i v = _mm256_loadu_si256((const __m256i *)(const void *)(hay + i - 32));
+        __m256i eq = _mm256_or_si256(_mm256_cmpeq_epi8(v, v1), _mm256_cmpeq_epi8(v, v2));
+        uint32_t mask = (uint32_t)_mm256_movemask_epi8(eq);
+        if (mask != 0) {
+            *out = i - 32 + (31 - (size_t)__builtin_clz(mask));
+            return true;
+        }
+        i -= 32;
+    }
+    while (i > 0) {
+        --i;
+        if (hay[i] == n1 || hay[i] == n2) {
+            *out = i;
+            return true;
+        }
+    }
+    return false;
+}
+#endif
 
 size_t edit_memchr2(uint8_t n1, uint8_t n2, const uint8_t *hay, size_t len, size_t offset) {
     if (len == 0) {
@@ -10,6 +70,12 @@ size_t edit_memchr2(uint8_t n1, uint8_t n2, const uint8_t *hay, size_t len, size
         return len; // invalid input, defined output
     }
     size_t i = offset < len ? offset : len;
+#ifdef EDIT_SIMD_X86
+    // Only pay dispatch + vector setup when a full 32-byte chunk is in range.
+    if (len - i >= 32 && __builtin_cpu_supports("avx2")) {
+        return memchr2_avx2(n1, n2, hay, len, i);
+    }
+#endif
     while (i < len) {
         uint8_t c = hay[i];
         if (c == n1 || c == n2) {
@@ -33,6 +99,11 @@ bool edit_memrchr2(uint8_t n1, uint8_t n2, const uint8_t *hay, size_t len, size_
         return false;
     }
     size_t end = offset < len ? offset : len;
+#ifdef EDIT_SIMD_X86
+    if (end >= 32 && __builtin_cpu_supports("avx2")) {
+        return memrchr2_avx2(n1, n2, hay, len, end, out);
+    }
+#endif
     while (end > 0) {
         --end;
         uint8_t c = hay[end];

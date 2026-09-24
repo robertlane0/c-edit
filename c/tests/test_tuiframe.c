@@ -32,12 +32,20 @@ static void frame_buttons(edit_tui_t *tui, const edit_input_t *in, uint64_t *id1
         return;
     }
     edit_tnode_t *b1 = edit_tree_block_begin(&ctx.tree, "b1");
+    if (b1 == NULL) {
+        edit_tui_end(tui, &ctx);
+        return;
+    }
     b1->attributes.focusable = true;
     b1->intrinsic_size.width = 4;
     b1->intrinsic_size.height = 1;
     b1->intrinsic_set = true;
     edit_tree_block_end(&ctx.tree);
     edit_tnode_t *b2 = edit_tree_block_begin(&ctx.tree, "b2");
+    if (b2 == NULL) {
+        edit_tui_end(tui, &ctx);
+        return;
+    }
     b2->attributes.focusable = true;
     b2->intrinsic_size.width = 4;
     b2->intrinsic_size.height = 1;
