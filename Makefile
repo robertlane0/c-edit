@@ -12,10 +12,11 @@ OBJ = $(patsubst c/src/%.c,$(BUILD)/obj/%.o,$(SRC))
 TEST_SRC = $(wildcard c/tests/test_*.c)
 TEST_BIN = $(patsubst c/tests/test_%.c,$(BUILD)/test_%,$(TEST_SRC))
 LIB = $(BUILD)/libedit_c.a
+BIN = $(BUILD)/edit
 
 .PHONY: all release test asan ubsan tsan cppcheck tidy format-check clean
 
-all: $(LIB)
+all: $(LIB) $(BIN)
 
 release: CFLAGS = -O2 $(CSTD) $(WARN) $(INCLUDES) -DNDEBUG -D_FORTIFY_SOURCE=2
 release: $(LIB)
@@ -29,7 +30,10 @@ $(LIB): $(OBJ) | $(BUILD)
 $(BUILD)/test_%: c/tests/test_%.c $(LIB) | $(BUILD)
 	$(CC) $(CFLAGS) $< $(LIB) -lm -ldl -o $@ $(LDFLAGS)
 
-test: $(LIB) $(TEST_BIN)
+$(BIN): c/src/bin/edit.c $(LIB) | $(BUILD)
+	$(CC) $(CFLAGS) $< $(LIB) -lm -ldl -o $@ $(LDFLAGS)
+
+test: $(LIB) $(BIN) $(TEST_BIN)
 	set -e; for t in $(TEST_BIN); do echo "== $$t"; "$$t"; done
 
 asan: CFLAGS += -fsanitize=address,undefined -fno-omit-frame-pointer
