@@ -1,5 +1,5 @@
 #define _POSIX_C_SOURCE 200809L // ppoll, nanosleep; must precede headers
-#define _GNU_SOURCE // ppoll declaration
+#define _GNU_SOURCE             // ppoll declaration
 
 #include "edit/tty.h"
 
@@ -359,7 +359,8 @@ bool edit_tty_stdin_redirected(void) {
     return s_state.stdin_fd != STDIN_FILENO;
 }
 
-bool edit_tty_file_id(int fd, uint64_t *out_dev, uint64_t *out_ino) {    struct stat st;
+bool edit_tty_file_id(int fd, uint64_t *out_dev, uint64_t *out_ino) {
+    struct stat st;
     if (fstat(fd, &st) != 0) {
         return false;
     }

@@ -22,8 +22,8 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | icu (conv/collation) | C validated | migration | all-or-nothing load | round-trip + collation |
 | icu (text/regex UText) | C validated | migration | provider over doc iface | differential search |
 | fuzzy (scorer) | C validated | migration | dead Rust code, validated via scratch copy | 27 differential vectors |
-| sys (unix/vm) | C started | migration | vm done; rest pending | reserve/commit/release tests |
-| buffer (TextBuffer) | Not assessed | migration | undo/redo, regex search | TBD |
+| sys (unix/vm) | C validated | migration | vm done; rest pending | reserve/commit/release tests |
+| buffer (TextBuffer) | C validated | migration | undo/redo, regex search | tbuf slices + app wiring |
 | buffer (tbuf core) | C validated | migration | cursor/history/edit/undo | scripted Rust parity |
 | buffer (tbuf search) | C validated | migration | select + find/replace | Rust vectors + hang fix |
 | buffer (tbuf indent) | C validated | migration | empty-line no-op hardens panic | Rust vectors |
@@ -44,12 +44,14 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 | tui (uitext) | C validated | migration | ellipsis + styled chunks | byte-exact VT |
 | tui (frame) | C validated | migration | input/focus/settling/clipboard | frame pump tests |
 | tui (widgets) | C validated | migration | blocks/labels/buttons/tables | activation flows |
+| tui (menubar) | C validated | migration | accelerators/flyouts/focus | shortcut + render vectors |
 | tui (textarea) | C validated | migration | shared buffers, key/mouse input | scripted parity |
 | vt (parser) | C validated | migration | DCS quirk mirrored | differential streams |
 | sys (rest: console, files, icu-load) | Not assessed | migration | platform ABI | TBD |
 | sys (unix tty) | C validated | migration | PTY-tested poll/modes | read/write/resize |
+| sys (file_id_at) | C validated | migration | open+stat identity | overwrite-warning identity |
 | document (traits) | C validated | migration | vtable + slice doc | interface tests |
-| fuzzy (windows paths) | Not assessed | migration | needs sys slice | TBD |
+| fuzzy (windows paths) | Deferred | migration | Windows-only sys surface | C path targets POSIX |
 
 ## Validated slices (this checkpoint)
 
@@ -88,14 +90,25 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - tlist/trender: 34 checks, list/scrollarea/modal widgets + node render pass,
   byte-exact VT (labels, styled spans, list click/arrows, modal), ASan/UBSan clean.
 - tty: 39 checks, PTY-backed modes/poll/resize/file-id/lang, ASan/NDEBUG clean.
+- tmenu: 58 checks, menubar open/accelerators/checkbox glyphs + string editline
+  round-trip, ASan/UBSan clean.
+- apploc: 13 checks + 8 full-table differential dumps vs the Rust module
+  (en/de/ja/pt-br/zh/zh-hant/unknown), generator kept in `tools/gen_apploc.py`.
+- app: 147 checks, `:line:char` goto vectors from the Rust unit test, untitled
+  naming, file open/dedupe/save/reread, error ring, full frame draw (type,
+  Ctrl+S save, Ctrl+Q prompt), ASan/UBSan/NDEBUG clean.
+- editbin: 21 checks, PTY-driven `--help`/`--version`/interactive flows
+  (setup handshake, render, type, unsaved-changes prompt, clean exit,
+  alt-screen restore), ASan/UBSan clean.
+- astring: invalid UTF-8 / split-codepoint args now rejected in every build
+  (release included), fixing the previous NDEBUG unused-function failure.
 - Notable: upstream find_and_replace_all loops forever (stale ICU chunks
   after setUText); C refreshes the provider window on set_text and terminates.
-- Policy: public arg validation returns errors gracefully (tested in debug);
-  asserts kept only for usage-discipline invariants (borrow order, tail-only shrink).
-- Known gap: `make release` (NDEBUG) fails on pre-existing `astring.c`
-  unused-function errors (`is_char_boundary`, `is_valid_utf8`, only used in
-  assert paths); debug/ASan/UBSan gates unaffected.
-- Gates: strict warnings, cppcheck, clang-format, `cargo +nightly test --lib` green (37).
+- Policy: public arg validation returns errors gracefully (tested in release
+  too); asserts kept only for usage-discipline invariants (borrow order,
+  tail-only shrink).
+- Gates: strict warnings, cppcheck, clang-format (enforced, no `|| true`),
+  `make release` + NDEBUG test run, `cargo +nightly test --lib` green (37).
 
 ## Baseline perf
 
@@ -105,4 +118,5 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 ## Gates (C)
 
 - `-Wall -Wextra -Wpedantic -Werror -Wconversion -Wsign-conversion -Wnull-dereference -Wdouble-promotion -Wformat=2 -std=c17`
-- `clang-format`, `cppcheck`, ASan/UBSan clean, `cargo +nightly test` still green.
+- `clang-format`, `cppcheck`, ASan/UBSan clean, NDEBUG release run,
+  `cargo +nightly test` still green.

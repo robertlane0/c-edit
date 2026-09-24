@@ -46,17 +46,17 @@ tsan: CFLAGS += -fsanitize=thread -fno-omit-frame-pointer
 tsan: clean all test
 
 cppcheck:
-	@if ls c/src/*.c c/tests/*.c >/dev/null 2>&1; then \
+	@if ls c/src/*.c c/src/bin/*.c c/tests/*.c >/dev/null 2>&1; then \
 	  cppcheck --enable=warning,performance,portability --error-exitcode=1 --std=c17 \
 	    --suppress=missingIncludeSystem \
-	    -Ic/include c/src c/tests; \
+	    -Ic/include c/src c/src/bin c/tests; \
 	fi
 
 tidy:
 	clang-tidy c/src/*.c c/tests/*.c -- $(INCLUDES) $(CSTD) 2>/dev/null || true
 
 format-check:
-	clang-format --dry-run --Werror c/src/*.c c/include/edit/*.h c/tests/*.c 2>/dev/null || true
+	clang-format --dry-run --Werror c/src/*.c c/src/bin/*.c c/include/edit/*.h c/tests/*.c
 
 $(BUILD) $(BUILD)/obj:
 	mkdir -p $@

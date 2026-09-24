@@ -19,7 +19,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "Ctrl",
         /* zh_hant */ "Ctrl",
     },
-    /* Alt */ {
+    /* Alt */
+    {
         /* en */ "Alt",
         /* de */ "Alt",
         /* es */ "Alt",
@@ -32,7 +33,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "Alt",
         /* zh_hant */ "Alt",
     },
-    /* Shift */ {
+    /* Shift */
+    {
         /* en */ "Shift",
         /* de */ "Umschalt",
         /* es */ "Mayús",
@@ -45,7 +47,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "Shift",
         /* zh_hant */ "Shift",
     },
-    /* Ok */ {
+    /* Ok */
+    {
         /* en */ "Ok",
         /* de */ "OK",
         /* es */ "Aceptar",
@@ -58,7 +61,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "确定",
         /* zh_hant */ "確定",
     },
-    /* Yes */ {
+    /* Yes */
+    {
         /* en */ "Yes",
         /* de */ "Ja",
         /* es */ "Sí",
@@ -71,7 +75,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "是",
         /* zh_hant */ "是",
     },
-    /* No */ {
+    /* No */
+    {
         /* en */ "No",
         /* de */ "Nein",
         /* es */ "No",
@@ -84,7 +89,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "否",
         /* zh_hant */ "否",
     },
-    /* Cancel */ {
+    /* Cancel */
+    {
         /* en */ "Cancel",
         /* de */ "Abbrechen",
         /* es */ "Cancelar",
@@ -97,7 +103,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "取消",
         /* zh_hant */ "取消",
     },
-    /* Always */ {
+    /* Always */
+    {
         /* en */ "Always",
         /* de */ "Immer",
         /* es */ "Siempre",
@@ -110,7 +117,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "总是",
         /* zh_hant */ "總是",
     },
-    /* File */ {
+    /* File */
+    {
         /* en */ "File",
         /* de */ "Datei",
         /* es */ "Archivo",
@@ -123,7 +131,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "文件",
         /* zh_hant */ "檔案",
     },
-    /* FileNew */ {
+    /* FileNew */
+    {
         /* en */ "New File…",
         /* de */ "Neue Datei…",
         /* es */ "Nuevo archivo…",
@@ -136,7 +145,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "新建文件…",
         /* zh_hant */ "新增檔案…",
     },
-    /* FileOpen */ {
+    /* FileOpen */
+    {
         /* en */ "Open File…",
         /* de */ "Datei öffnen…",
         /* es */ "Abrir archivo…",
@@ -149,7 +159,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "打开文件…",
         /* zh_hant */ "開啟檔案…",
     },
-    /* FileSave */ {
+    /* FileSave */
+    {
         /* en */ "Save",
         /* de */ "Speichern",
         /* es */ "Guardar",
@@ -162,7 +173,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "保存",
         /* zh_hant */ "儲存",
     },
-    /* FileSaveAs */ {
+    /* FileSaveAs */
+    {
         /* en */ "Save As…",
         /* de */ "Speichern unter…",
         /* es */ "Guardar como…",
@@ -175,7 +187,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "另存为…",
         /* zh_hant */ "另存新檔…",
     },
-    /* FileClose */ {
+    /* FileClose */
+    {
         /* en */ "Close Editor",
         /* de */ "Editor schließen",
         /* es */ "Cerrar editor",
@@ -188,7 +201,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "关闭编辑器",
         /* zh_hant */ "關閉編輯器",
     },
-    /* FileExit */ {
+    /* FileExit */
+    {
         /* en */ "Exit",
         /* de */ "Beenden",
         /* es */ "Salir",
@@ -201,7 +215,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "退出",
         /* zh_hant */ "退出",
     },
-    /* Edit */ {
+    /* Edit */
+    {
         /* en */ "Edit",
         /* de */ "Bearbeiten",
         /* es */ "Editar",
@@ -214,7 +229,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "编辑",
         /* zh_hant */ "編輯",
     },
-    /* EditUndo */ {
+    /* EditUndo */
+    {
         /* en */ "Undo",
         /* de */ "Rückgängig",
         /* es */ "Deshacer",
@@ -227,7 +243,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "撤销",
         /* zh_hant */ "復原",
     },
-    /* EditRedo */ {
+    /* EditRedo */
+    {
         /* en */ "Redo",
         /* de */ "Wiederholen",
         /* es */ "Rehacer",
@@ -240,7 +257,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "重做",
         /* zh_hant */ "重做",
     },
-    /* EditCut */ {
+    /* EditCut */
+    {
         /* en */ "Cut",
         /* de */ "Ausschneiden",
         /* es */ "Cortar",
@@ -253,7 +271,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "剪切",
         /* zh_hant */ "剪下",
     },
-    /* EditCopy */ {
+    /* EditCopy */
+    {
         /* en */ "Copy",
         /* de */ "Kopieren",
         /* es */ "Copiar",
@@ -266,7 +285,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "复制",
         /* zh_hant */ "複製",
     },
-    /* EditPaste */ {
+    /* EditPaste */
+    {
         /* en */ "Paste",
         /* de */ "Einfügen",
         /* es */ "Pegar",
@@ -279,7 +299,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "粘贴",
         /* zh_hant */ "貼上",
     },
-    /* EditFind */ {
+    /* EditFind */
+    {
         /* en */ "Find",
         /* de */ "Suchen",
         /* es */ "Buscar",
@@ -292,7 +313,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "查找",
         /* zh_hant */ "尋找",
     },
-    /* EditReplace */ {
+    /* EditReplace */
+    {
         /* en */ "Replace",
         /* de */ "Ersetzen",
         /* es */ "Reemplazar",
@@ -305,7 +327,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "替换",
         /* zh_hant */ "取代",
     },
-    /* View */ {
+    /* View */
+    {
         /* en */ "View",
         /* de */ "Ansicht",
         /* es */ "Ver",
@@ -318,7 +341,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "视图",
         /* zh_hant */ "檢視",
     },
-    /* ViewFocusStatusbar */ {
+    /* ViewFocusStatusbar */
+    {
         /* en */ "Focus Statusbar",
         /* de */ "Statusleiste fokussieren",
         /* es */ "Enfocar barra de estado",
@@ -331,7 +355,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "聚焦状态栏",
         /* zh_hant */ "聚焦狀態列",
     },
-    /* ViewWordWrap */ {
+    /* ViewWordWrap */
+    {
         /* en */ "Word Wrap",
         /* de */ "Zeilenumbruch",
         /* es */ "Ajuste de línea",
@@ -344,7 +369,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "自动换行",
         /* zh_hant */ "自動換行",
     },
-    /* Help */ {
+    /* Help */
+    {
         /* en */ "Help",
         /* de */ "Hilfe",
         /* es */ "Ayuda",
@@ -357,7 +383,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "帮助",
         /* zh_hant */ "幫助",
     },
-    /* HelpAbout */ {
+    /* HelpAbout */
+    {
         /* en */ "About",
         /* de */ "Über",
         /* es */ "Acerca de",
@@ -370,7 +397,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "关于",
         /* zh_hant */ "關於",
     },
-    /* UnsavedChangesDialogTitle */ {
+    /* UnsavedChangesDialogTitle */
+    {
         /* en */ "Unsaved Changes",
         /* de */ "Ungespeicherte Änderungen",
         /* es */ "Cambios sin guardar",
@@ -383,7 +411,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "未保存的更改",
         /* zh_hant */ "未儲存的變更",
     },
-    /* UnsavedChangesDialogDescription */ {
+    /* UnsavedChangesDialogDescription */
+    {
         /* en */ "Do you want to save the changes you made?",
         /* de */ "Möchten Sie die vorgenommenen Änderungen speichern?",
         /* es */ "¿Desea guardar los cambios realizados?",
@@ -396,7 +425,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "您要保存所做的更改吗？",
         /* zh_hant */ "您要保存所做的變更嗎？",
     },
-    /* UnsavedChangesDialogYes */ {
+    /* UnsavedChangesDialogYes */
+    {
         /* en */ "Save",
         /* de */ "Speichern",
         /* es */ "Guardar",
@@ -409,7 +439,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "保存",
         /* zh_hant */ "儲存",
     },
-    /* UnsavedChangesDialogNo */ {
+    /* UnsavedChangesDialogNo */
+    {
         /* en */ "Don't Save",
         /* de */ "Nicht speichern",
         /* es */ "No guardar",
@@ -422,7 +453,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "不保存",
         /* zh_hant */ "不儲存",
     },
-    /* AboutDialogTitle */ {
+    /* AboutDialogTitle */
+    {
         /* en */ "About",
         /* de */ "Über",
         /* es */ "Acerca de",
@@ -435,7 +467,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "关于",
         /* zh_hant */ "關於",
     },
-    /* AboutDialogVersion */ {
+    /* AboutDialogVersion */
+    {
         /* en */ "Version: ",
         /* de */ "Version: ",
         /* es */ "Versión: ",
@@ -448,7 +481,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "版本: ",
         /* zh_hant */ "版本: ",
     },
-    /* LargeClipboardWarningLine1 */ {
+    /* LargeClipboardWarningLine1 */
+    {
         /* en */ "Text you copy is shared with the terminal clipboard.",
         /* de */ "Der kopierte Text wird mit der Terminal-Zwischenablage geteilt.",
         /* es */ "El texto que copies se comparte con el portapapeles del terminal.",
@@ -461,7 +495,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "你复制的文本将共享到终端剪贴板。",
         /* zh_hant */ "您複製的文字將會與終端機剪貼簿分享。",
     },
-    /* LargeClipboardWarningLine2 */ {
+    /* LargeClipboardWarningLine2 */
+    {
         /* en */ "You copied {size} which may take a long time to share.",
         /* de */ "Sie haben {size} kopiert, das Weitergeben könnte lange dauern.",
         /* es */ "Copiaste {size}, lo que puede tardar en compartirse.",
@@ -474,7 +509,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "你复制了 {size}，共享可能需要较长时间。",
         /* zh_hant */ "您已複製 {size}，共享可能需要較長時間。",
     },
-    /* LargeClipboardWarningLine3 */ {
+    /* LargeClipboardWarningLine3 */
+    {
         /* en */ "Do you want to send it anyway?",
         /* de */ "Möchten Sie es trotzdem senden?",
         /* es */ "¿Desea enviarlo de todas formas?",
@@ -487,7 +523,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "仍要发送吗？",
         /* zh_hant */ "仍要傳送嗎？",
     },
-    /* SuperLargeClipboardWarning */ {
+    /* SuperLargeClipboardWarning */
+    {
         /* en */ "The text you copied is too large to be shared.",
         /* de */ "Der kopierte Text ist zu groß, um geteilt zu werden.",
         /* es */ "El texto que copiaste es demasiado grande para compartirse.",
@@ -500,7 +537,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "你复制的文本过大，无法共享。",
         /* zh_hant */ "您複製的文字過大，無法分享。",
     },
-    /* WarningDialogTitle */ {
+    /* WarningDialogTitle */
+    {
         /* en */ "Warning",
         /* de */ "Warnung",
         /* es */ "Advertencia",
@@ -513,7 +551,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "警告",
         /* zh_hant */ "警告",
     },
-    /* ErrorDialogTitle */ {
+    /* ErrorDialogTitle */
+    {
         /* en */ "Error",
         /* de */ "Fehler",
         /* es */ "Error",
@@ -526,7 +565,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "错误",
         /* zh_hant */ "錯誤",
     },
-    /* ErrorIcuMissing */ {
+    /* ErrorIcuMissing */
+    {
         /* en */ "This operation requires the ICU library",
         /* de */ "Diese Operation erfordert die ICU-Bibliothek",
         /* es */ "Esta operación requiere la biblioteca ICU",
@@ -539,7 +579,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "此操作需要 ICU 库",
         /* zh_hant */ "此操作需要 ICU 庫",
     },
-    /* SearchNeedleLabel */ {
+    /* SearchNeedleLabel */
+    {
         /* en */ "Find:",
         /* de */ "Suchen:",
         /* es */ "Buscar:",
@@ -552,7 +593,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "查找:",
         /* zh_hant */ "尋找:",
     },
-    /* SearchReplacementLabel */ {
+    /* SearchReplacementLabel */
+    {
         /* en */ "Replace:",
         /* de */ "Ersetzen:",
         /* es */ "Reemplazar:",
@@ -565,7 +607,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "替换:",
         /* zh_hant */ "替換:",
     },
-    /* SearchMatchCase */ {
+    /* SearchMatchCase */
+    {
         /* en */ "Match Case",
         /* de */ "Groß/Klein",
         /* es */ "May/Min",
@@ -578,7 +621,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "区分大小写",
         /* zh_hant */ "區分大小寫",
     },
-    /* SearchWholeWord */ {
+    /* SearchWholeWord */
+    {
         /* en */ "Whole Word",
         /* de */ "Ganzes Wort",
         /* es */ "Palabra",
@@ -591,7 +635,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "全字匹配",
         /* zh_hant */ "全字匹配",
     },
-    /* SearchUseRegex */ {
+    /* SearchUseRegex */
+    {
         /* en */ "Use Regex",
         /* de */ "RegEx",
         /* es */ "RegEx",
@@ -604,7 +649,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "正则",
         /* zh_hant */ "正則",
     },
-    /* SearchReplaceAll */ {
+    /* SearchReplaceAll */
+    {
         /* en */ "Replace All",
         /* de */ "Alle ersetzen",
         /* es */ "Reemplazar todo",
@@ -617,7 +663,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "全部替换",
         /* zh_hant */ "全部取代",
     },
-    /* SearchClose */ {
+    /* SearchClose */
+    {
         /* en */ "Close",
         /* de */ "Schließen",
         /* es */ "Cerrar",
@@ -630,7 +677,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "关闭",
         /* zh_hant */ "關閉",
     },
-    /* EncodingReopen */ {
+    /* EncodingReopen */
+    {
         /* en */ "Reopen with encoding",
         /* de */ "Mit Kodierung erneut öffnen",
         /* es */ "Reabrir con codificación",
@@ -643,7 +691,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "使用编码重新打开",
         /* zh_hant */ "使用編碼重新打開",
     },
-    /* EncodingConvert */ {
+    /* EncodingConvert */
+    {
         /* en */ "Convert to encoding",
         /* de */ "In Kodierung konvertieren",
         /* es */ "Convertir a otra codificación",
@@ -656,7 +705,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "转换为编码",
         /* zh_hant */ "轉換為編碼",
     },
-    /* IndentationTabs */ {
+    /* IndentationTabs */
+    {
         /* en */ "Tabs",
         /* de */ "Tabs",
         /* es */ "Tabulaciones",
@@ -669,7 +719,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "制表符",
         /* zh_hant */ "製表符",
     },
-    /* IndentationSpaces */ {
+    /* IndentationSpaces */
+    {
         /* en */ "Spaces",
         /* de */ "Leerzeichen",
         /* es */ "Espacios",
@@ -682,7 +733,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "空格",
         /* zh_hant */ "空格",
     },
-    /* SaveAsDialogPathLabel */ {
+    /* SaveAsDialogPathLabel */
+    {
         /* en */ "Folder:",
         /* de */ "Ordner:",
         /* es */ "Carpeta:",
@@ -695,7 +747,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "文件夹:",
         /* zh_hant */ "資料夾:",
     },
-    /* SaveAsDialogNameLabel */ {
+    /* SaveAsDialogNameLabel */
+    {
         /* en */ "File name:",
         /* de */ "Dateiname:",
         /* es */ "Nombre de archivo:",
@@ -708,7 +761,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "文件名:",
         /* zh_hant */ "檔案名稱:",
     },
-    /* FileOverwriteWarning */ {
+    /* FileOverwriteWarning */
+    {
         /* en */ "Confirm Save As",
         /* de */ "Speichern unter bestätigen",
         /* es */ "Confirmar Guardar como",
@@ -721,7 +775,8 @@ static const char *const TABLE[][11] = {
         /* zh_hans */ "确认另存为",
         /* zh_hant */ "確認另存新檔",
     },
-    /* FileOverwriteWarningDescription */ {
+    /* FileOverwriteWarningDescription */
+    {
         /* en */ "File already exists. Do you want to overwrite it?",
         /* de */ "Datei existiert bereits. Möchten Sie sie überschreiben?",
         /* es */ "El archivo ya existe. ¿Desea sobrescribirlo?",
@@ -739,7 +794,7 @@ static const char *const TABLE[][11] = {
 static int lang_index = 0;
 
 void edit_loc_init(void) {
-    static const char *const keys[11] = {"en", "de", "es", "fr", "it", "ja",
+    static const char *const keys[11] = {"en", "de",    "es", "fr", "it",     "ja",
                                          "ko", "pt-br", "ru", "zh", "zh-hant"};
     int idx = 0; // Rust resets to en on every init without a match.
     const char *envs[3] = {getenv("LANGUAGE"), getenv("LC_ALL"), getenv("LANG")};

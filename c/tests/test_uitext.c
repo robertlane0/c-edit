@@ -47,8 +47,7 @@ int main(void) {
     CHECK(edit_text_measure("a\xE2\x86\x92"
                             "b\xE2\x9C\x93"
                             "c",
-                            9)
-          == 5);
+                            9) == 5);
     CHECK(edit_text_measure("", 0) == 0);
     CHECK(edit_text_measure(NULL, 0) == 0);
 
@@ -151,16 +150,15 @@ int main(void) {
         CHECK(edit_fb_flip(&fb, sz(4, 1)) == 0);
         edit_text_content_t c;
         edit_text_init(&c);
-        CHECK(edit_text_add(&c, "a\xE2\x86\x92"
-                                 "b\xE2\x9C\x93"
-                                 "c",
+        CHECK(edit_text_add(&c,
+                            "a\xE2\x86\x92"
+                            "b\xE2\x9C\x93"
+                            "c",
                             9));
         CHECK(edit_text_render(&c, rect(0, 0, 4, 1), 5, &fb));
-        CHECK(expect_render(&fb,
-                            "\x1b[m\x1b[1;1H\x1b[48;2;0;0;0m\x1b[38;2;255;255;255ma"
-                            "\xE2\x86\x92"
-                            "b\xE2\x9C\x93\x1b[?25l")
-              == 0);
+        CHECK(expect_render(&fb, "\x1b[m\x1b[1;1H\x1b[48;2;0;0;0m\x1b[38;2;255;255;255ma"
+                                 "\xE2\x86\x92"
+                                 "b\xE2\x9C\x93\x1b[?25l") == 0);
         edit_text_destroy(&c);
         edit_fb_destroy(&fb);
     }

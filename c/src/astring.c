@@ -1,6 +1,5 @@
 #include "edit/astring.h"
 
-#include <assert.h>
 #include <string.h>
 
 #include "edit/utf8.h"
@@ -62,7 +61,9 @@ static bool is_valid_strict(const uint8_t *text, size_t len) {
     return true;
 }
 
-// Debug-only validity scan; release trusts the caller like Rust &str does.
+// Validates UTF-8 for every build: Rust's &str enforces it in the type
+// system, so the C boundary must reject invalid input instead of trusting
+// the caller.
 static bool is_valid_utf8(const char *str, size_t len) {
     if (len > 0 && str == NULL) {
         return false;
@@ -74,10 +75,9 @@ static bool is_valid_utf8(const char *str, size_t len) {
 }
 
 bool edit_astring_from_str(edit_astring_t *s, edit_arena_t *arena, const char *str, size_t len) {
-    if (s == NULL) {
+    if (s == NULL || !is_valid_utf8(str, len)) {
         return false;
     }
-    assert(is_valid_utf8(str, len));
     edit_av_u8_init(&s->vec, arena);
     return edit_av_u8_extend(&s->vec, (const uint8_t *)str, len);
 }
@@ -127,10 +127,9 @@ void edit_astring_clear(edit_astring_t *s) {
 }
 
 bool edit_astring_push_str(edit_astring_t *s, const char *str, size_t len) {
-    if (s == NULL) {
+    if (s == NULL || !is_valid_utf8(str, len)) {
         return false;
     }
-    assert(is_valid_utf8(str, len));
     if (len == 0) {
         return true;
     }
@@ -204,11 +203,12 @@ static bool is_char_boundary(const edit_astring_t *s, size_t pos) {
 
 bool edit_astring_replace_range(edit_astring_t *s, size_t beg, size_t end, const char *rep,
                                 size_t replen) {
-    if (s == NULL) {
+    if (s == NULL || !is_valid_utf8(rep, replen)) {
         return false;
     }
-    assert(is_char_boundary(s, beg) && is_char_boundary(s, end > s->vec.len ? s->vec.len : end));
-    assert(is_valid_utf8(rep, replen));
+    if (!is_char_boundary(s, beg) || !is_char_boundary(s, end > s->vec.len ? s->vec.len : end)) {
+        return false;
+    }
     return edit_av_u8_replace_range(&s->vec, beg, end, (const uint8_t *)rep, replen);
 }
 

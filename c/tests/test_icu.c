@@ -103,9 +103,8 @@ int main(void) {
         CHECK(edit_compare_strings((const uint8_t *)"\xC3\xA4", 2, (const uint8_t *)"z", 1) == -1);
         CHECK(edit_compare_strings((const uint8_t *)"", 0, (const uint8_t *)"a", 1) == -1);
         CHECK(edit_compare_strings((const uint8_t *)"Stra\xC3\x9F"
-                                                   "e",
-                                   7, (const uint8_t *)"strasse", 7)
-              == 1);
+                                                    "e",
+                                   7, (const uint8_t *)"strasse", 7) == 1);
         CHECK(edit_compare_strings((const uint8_t *)"abc", 3, (const uint8_t *)"abcd", 4) == -1);
 
         // Error names and encodings.
@@ -163,8 +162,8 @@ int main(void) {
         edit_conv_t c3;
         CHECK(edit_conv_init(&c3, "UTF-8", "UTF-16LE", pivot3, 64) == 0);
         uint8_t tiny[4];
-        CHECK(edit_conv_step(&c3, text, sizeof text - 1, tiny, sizeof tiny, &in_used, &out_used)
-              == 0);
+        CHECK(edit_conv_step(&c3, text, sizeof text - 1, tiny, sizeof tiny, &in_used, &out_used) ==
+              0);
         CHECK(out_used == 4 && in_used > 0 && in_used <= sizeof text - 1);
         CHECK(memcmp(tiny, "\x68\x00\xE9\x00", 4) == 0);
         edit_conv_destroy(&c3);

@@ -434,8 +434,8 @@ int edit_tbuf_find_select(edit_tbuf_t *t, const char *pattern, edit_search_opts_
     size_t plen = strlen(pattern);
     if (t->search != NULL) {
         edit_search_t *s = t->search;
-        if (s->pattern_len != plen || memcmp(s->pattern, pattern, plen) != 0
-            || !opts_eq(s->opts, opts)) {
+        if (s->pattern_len != plen || memcmp(s->pattern, pattern, plen) != 0 ||
+            !opts_eq(s->opts, opts)) {
             tbuf_search_free(t);
         }
         // When transitioning from some search to no search, move back.

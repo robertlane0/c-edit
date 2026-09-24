@@ -126,6 +126,20 @@ int main(void) {
     CHECK(edit_astring_capacity(&t) == 3);
     CHECK(expect_bytes(&t, "abc", 3) == 0);
 
+    // Invalid UTF-8 is rejected in every build (release included).
+    edit_astring_t bad;
+    CHECK(!edit_astring_from_str(&bad, &arena, "\xC0", 1));
+    CHECK(!edit_astring_from_str(&bad, &arena, "\xE2\x82", 2));
+    CHECK(edit_astring_from_str(&bad, &arena, "\xE2\x82\xAC", 3));
+    CHECK(!edit_astring_push_str(&bad, "\x80", 1));
+    CHECK(expect_bytes(&bad, "\xE2\x82\xAC", 3) == 0);
+    CHECK(!edit_astring_replace_range(&bad, 1, 3, "x", 1));    // split codepoint
+    CHECK(!edit_astring_replace_range(&bad, 0, 3, "\x80", 1)); // invalid rep
+    CHECK(expect_bytes(&bad, "\xE2\x82\xAC", 3) == 0);
+    CHECK(edit_astring_replace_range(&bad, 0, 3, "ok", 2));
+    CHECK(expect_bytes(&bad, "ok", 2) == 0);
+    edit_astring_clear(&bad);
+
     // Lossy conversion: Rust-vector parity (Err bytes are UTF-8 of FFFDs).
     CHECK(expect_lossy(&arena, NULL, 0, 0, "", 0) == 0);
     CHECK(expect_lossy(&arena, (const uint8_t *)"", 0, 0, "", 0) == 0);
@@ -148,8 +162,9 @@ int main(void) {
     static const uint8_t trunc[] = {0xE0, 0xA0};
     CHECK(expect_lossy(&arena, trunc, 2, 1, "\xEF\xBF\xBD", 3) == 0);
     static const uint8_t mix[] = {0xFF, 0x41, 0x80};
-    CHECK(expect_lossy(&arena, mix, 3, 1, "\xEF\xBF\xBD"
-                                             "A\xEF\xBF\xBD",
+    CHECK(expect_lossy(&arena, mix, 3, 1,
+                       "\xEF\xBF\xBD"
+                       "A\xEF\xBF\xBD",
                        7) == 0);
     static const uint8_t e0a028[] = {0xE0, 0xA0, 0x28};
     CHECK(expect_lossy(&arena, e0a028, 3, 1, "\xEF\xBF\xBD(", 4) == 0);
