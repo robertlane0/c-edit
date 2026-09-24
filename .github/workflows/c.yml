@@ -13,6 +13,8 @@ jobs:
         run: make
       - name: Tests
         run: make test
+      - name: Release (NDEBUG) tests
+        run: make release-test
       - name: ASan+UBSan
         run: make asan
       - name: cppcheck
@@ -22,3 +24,8 @@ jobs:
         run: make format-check
       - name: Rust parity
         run: cargo +nightly test
+      - name: PTY differential (Rust vs C)
+        run: |
+          cargo +nightly build --bin edit
+          make build/edit
+          python3 tools/diff_edit_pty.py
