@@ -4,3 +4,5 @@
 lcov.info
 target
 build/
+*.o
+__pycache__/
