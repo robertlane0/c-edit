@@ -204,16 +204,17 @@ int main(void) {
         // after we check dirtiness via the statusbar below).
         full_write(leader, "x", 1);
         CHECK(read_until(leader, "*", 5000));
-        // Ctrl+Q with a dirty buffer prompts; discard via the close flow:
-        // press Ctrl+Q (wants_exit), then the unsaved-changes dialog
-        // appears; answer "N" (discard).
+        // Ctrl+Q with a dirty buffer prompts; lowercase "n" discards
+        // (uppercase ASCII maps to Shift+N, matching Rust from_ascii).
         const char ctrl_q = 0x11;
         full_write(leader, &ctrl_q, 1);
         CHECK(read_until(leader, "Unsaved", 5000));
-        full_write(leader, "N", 1);
+        full_write(leader, "n", 1);
         int status = 0;
         CHECK(wait_exit(pid, 5000, &status));
         CHECK(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+        // Drain the final restore sequences.
+        read_until(leader, "?1049l", 1000);
         // Alt-screen was left on exit.
         CHECK(memmem(capture, capture_len, "?1049l", 6) != NULL);
         close(leader);
