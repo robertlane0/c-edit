@@ -487,9 +487,16 @@ bool edit_tbuf_is_wrap(const edit_tbuf_t *t) {
     return t != NULL && t->wrap_enabled;
 }
 
-void tbuf_reflow(edit_tbuf_t *t, bool force) {
+void tbuf_update_margin(edit_tbuf_t *t) {
+    if (t == NULL) {
+        return;
+    }
     t->margin_width =
         t->margin_enabled ? digits10(t->logical_lines < 1 ? 1 : t->logical_lines) + 3 : 0;
+}
+
+void tbuf_reflow(edit_tbuf_t *t, bool force) {
+    tbuf_update_margin(t);
     int32_t text_width = t->width - t->margin_width;
     int32_t wrap_col = (t->wrap_enabled && text_width >= 2) ? text_width : 0;
 

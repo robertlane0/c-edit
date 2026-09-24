@@ -60,7 +60,8 @@ static void draw_borders(edit_fb_t *fb, edit_rect_t outer) {
     free(bottom);
 }
 
-static void render_node(edit_fb_t *fb, edit_tnode_t *node) {
+static void render_node(edit_tui_t *tui, edit_tnode_t *node) {
+    edit_fb_t *fb = &tui->framebuffer;
     if (node->outer_clipped.left >= node->outer_clipped.right ||
         node->outer_clipped.top >= node->outer_clipped.bottom) {
         return;
@@ -117,9 +118,19 @@ static void render_node(edit_fb_t *fb, edit_tnode_t *node) {
         size_t actual = edit_text_measure(node->text_ptr, node->text_len);
         edit_text_render(&view, inner, actual, fb);
     } else if (node->content_kind == 5) {
-        edit_shared_tbuf_t *shared = (edit_shared_tbuf_t *)node->ta_buffer;
-        if (shared != NULL) {
-            edit_tbuf_t *tb = &shared->tbuf;
+        edit_tbuf_t *tb = NULL;
+        if (node->ta_single_line) {
+            // Editline editors live in the TUI cache, keyed by node id.
+            for (size_t i = 0; i < tui->tbuf_cache_len; ++i) {
+                if (tui->tbuf_cache[i].node_id == node->id) {
+                    tb = &tui->tbuf_cache[i].editor->tbuf;
+                    break;
+                }
+            }
+        } else if (node->ta_buffer != NULL) {
+            tb = &((edit_shared_tbuf_t *)node->ta_buffer)->tbuf;
+        }
+        if (tb != NULL) {
             edit_rect_t dest = {inner_clipped.left, inner_clipped.top, inner_clipped.right,
                                 inner_clipped.bottom};
             if (!node->ta_single_line) {
@@ -148,7 +159,7 @@ static void render_node(edit_fb_t *fb, edit_tnode_t *node) {
     }
 
     for (edit_tnode_t *child = node->child_first; child != NULL; child = child->sib_next) {
-        render_node(fb, child);
+        render_node(tui, child);
     }
 }
 
@@ -157,6 +168,6 @@ void edit_tui_draw(edit_tui_t *t) {
         return;
     }
     for (edit_tnode_t *root = t->prev_tree.root_first; root != NULL; root = root->sib_next) {
-        render_node(&t->framebuffer, root);
+        render_node(t, root);
     }
 }

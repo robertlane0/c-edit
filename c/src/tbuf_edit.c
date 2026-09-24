@@ -287,6 +287,7 @@ void tbuf_edit_end(edit_tbuf_t *t) {
     } else {
         t->visual_lines = t->logical_lines;
     }
+    tbuf_update_margin(t);
     tbuf_search_free(t);
     t->has_render_cursor = false;
 }

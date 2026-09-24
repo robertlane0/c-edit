@@ -1320,20 +1320,6 @@ static bool path_has_parent(const char *path) {
     return strcmp(path, "/") != 0;
 }
 
-static int entry_cmp(const void *a, const void *b) {
-    const char *sa = *(const char *const *)a;
-    const char *sb = *(const char *const *)b;
-    size_t na = strlen(sa);
-    size_t nb = strlen(sb);
-    bool da = na > 0 && sa[na - 1] == '/';
-    bool db = nb > 0 && sb[nb - 1] == '/';
-    // Directories first (Rust: b_is_dir.cmp(a_is_dir) = descending).
-    if (da != db) {
-        return da ? -1 : 1;
-    }
-    return edit_compare_strings((const uint8_t *)sa, na, (const uint8_t *)sb, nb);
-}
-
 static void picker_entries_free(edit_app_t *app) {
     if (app->picker_entries != NULL) {
         for (size_t i = 0; i < app->picker_nentries; ++i) {
@@ -1401,15 +1387,8 @@ static void draw_saveas_refresh_files(edit_app_t *app) {
         }
         closedir(dp);
     }
-    // Sort everything after ".." (Rust sorts files[off..] where off = len-1).
-    if (n > 1) {
-        size_t off = n - 1;
-        if (files[0] != NULL && strcmp(files[0], "..") == 0) {
-            qsort(files + 1, n - 1, sizeof *files, entry_cmp);
-        } else {
-            qsort(files + off, n - off, sizeof *files, entry_cmp);
-        }
-    }
+    // Rust sorts files[len-1..], i.e. the last entry alone: no observable
+    // reordering. Keep readdir order for behavior parity.
     app->picker_entries = files;
     app->picker_nentries = n;
 }
