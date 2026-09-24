@@ -98,6 +98,11 @@ def run_rust():
 
 def main():
     args = sys.argv[1:]
+    global C_OUT, RUST_OUT
+    if "--c" in args:
+        C_OUT = args[args.index("--c") + 1]
+    if "--rust" in args:
+        RUST_OUT = args[args.index("--rust") + 1]
     if "--run" in args or not (os.path.exists(C_OUT) and os.path.exists(RUST_OUT)):
         run_c()
         run_rust()

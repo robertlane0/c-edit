@@ -29,3 +29,10 @@ jobs:
           cargo +nightly build --bin edit
           make build/edit
           python3 tools/diff_edit_pty.py
+      - name: Benchmarks (report only)
+        continue-on-error: true
+        run: |
+          make bench > c-bench.txt
+          cargo +nightly bench --bench lib -- \
+            --warm-up-time 1 --measurement-time 2 --sample-size 30 > rust-bench.txt 2>&1
+          python3 tools/bench_compare.py --c c-bench.txt --rust rust-bench.txt
