@@ -274,26 +274,36 @@ static int run(int argc, char **argv) {
             }
             uint8_t *input = NULL;
             size_t input_len = 0;
-            if (edit_tty_read(&input, &input_len, timeout) != EDIT_TTY_DATA) {
+            // Timeout is not EOF: Rust still draws one no-input frame.
+            edit_tty_read_t read_result = edit_tty_read(&input, &input_len, timeout);
+            if (read_result == EDIT_TTY_CLOSED) {
                 free(input);
                 break;
             }
+            static const uint8_t empty_input[1] = {0};
+            const uint8_t *bytes = read_result == EDIT_TTY_DATA ? input : empty_input;
+            size_t bytes_len = read_result == EDIT_TTY_DATA ? input_len : 0;
             edit_vt_stream_t vt_stream;
-            edit_vt_parse(&vt_parser, input, input_len, &vt_stream);
+            edit_vt_parse(&vt_parser, bytes, bytes_len, &vt_stream);
             edit_in_stream_t in_stream;
             edit_in_parse(&input_parser, &vt_stream, &in_stream);
+            // Always draw at least once per batch, like the Rust iterator loop.
             for (;;) {
                 edit_input_t event;
                 memset(&event, 0, sizeof event);
-                if (!edit_in_next(&in_stream, &event)) {
-                    break;
-                }
+                bool have = edit_in_next(&in_stream, &event);
                 edit_ctx_t ctx;
-                if (edit_tui_begin(&tui, &event, &ctx) != 0) {
+                if (edit_tui_begin(&tui, have ? &event : NULL, &ctx) != 0) {
+                    if (!have) {
+                        break;
+                    }
                     continue;
                 }
                 edit_app_draw(&ctx, &app);
                 edit_tui_end(&tui, &ctx);
+                if (!have) {
+                    break;
+                }
             }
             free(input);
         }

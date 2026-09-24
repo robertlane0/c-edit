@@ -101,12 +101,13 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
   (setup handshake, render, type, unsaved-changes prompt, clean exit,
   alt-screen restore), ASan/UBSan clean.
 - PTY differential: `tools/diff_edit_pty.py` drives `target/debug/edit` and
-  `build/edit` through 25 scenarios (startup, typing, UTF-8, paste, nav,
-  search/replace, menus, save/quit prompts, document picker, indent, undo)
-  and compares raw VT byte streams: all byte-identical. Two real bugs were
-  found this way: the OSC title is appended after the frame (not prepended),
-  and `scrollarea_begin` must inherit focus onto its content block so lists
-  inside modals get focus/selection colors.
+  `build/edit` through 33 scenarios (startup, typing, UTF-8, paste, nav,
+  search/replace, menus, save/quit prompts, document + file pickers, encoding
+  and indentation pickers, mouse select/drag/scroll, resize) and compares raw
+  VT byte streams: all byte-identical. Three real bugs were found this way:
+  the OSC title is appended after the frame (not prepended), `scrollarea_begin`
+  must inherit focus onto its content block so lists inside modals get focus,
+  and a stdin read timeout must not be treated as EOF in the main loop.
 - astring: invalid UTF-8 / split-codepoint args now rejected in every build
   (release included), fixing the previous NDEBUG unused-function failure.
 - Notable: upstream find_and_replace_all loops forever (stale ICU chunks
@@ -115,7 +116,7 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
   too); asserts kept only for usage-discipline invariants (borrow order,
   tail-only shrink).
 - Gates: strict warnings, cppcheck, clang-format (enforced, no `|| true`),
-  `make release` + NDEBUG test run, `cargo +nightly test --lib` green (37).
+  `make release-test` (NDEBUG) green, `cargo +nightly test --lib` green (37).
 
 ## Baseline perf
 
@@ -125,5 +126,5 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 ## Gates (C)
 
 - `-Wall -Wextra -Wpedantic -Werror -Wconversion -Wsign-conversion -Wnull-dereference -Wdouble-promotion -Wformat=2 -std=c17`
-- `clang-format`, `cppcheck`, ASan/UBSan clean, NDEBUG release run,
+- `clang-format`, `cppcheck`, ASan/UBSan clean, NDEBUG `release-test` run,
   `cargo +nightly test` still green.

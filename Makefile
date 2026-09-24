@@ -14,12 +14,17 @@ TEST_BIN = $(patsubst c/tests/test_%.c,$(BUILD)/test_%,$(TEST_SRC))
 LIB = $(BUILD)/libedit_c.a
 BIN = $(BUILD)/edit
 
-.PHONY: all release test asan ubsan tsan cppcheck tidy format-check clean
+.PHONY: all release release-test test asan ubsan tsan cppcheck tidy format-check clean
 
 all: $(LIB) $(BIN)
 
 release: CFLAGS = -O2 $(CSTD) $(WARN) $(INCLUDES) -DNDEBUG -D_FORTIFY_SOURCE=2
-release: $(LIB)
+release: $(LIB) $(BIN)
+
+# Release-mode test run (NDEBUG): builds lib, binary and tests with release flags.
+release-test: CFLAGS = -O2 $(CSTD) $(WARN) $(INCLUDES) -DNDEBUG -D_FORTIFY_SOURCE=2
+release-test: clean $(BIN) $(TEST_BIN)
+	set -e; for t in $(TEST_BIN); do echo "== $$t"; "$$t"; done
 
 $(BUILD)/obj/%.o: c/src/%.c | $(BUILD)/obj
 	$(CC) $(CFLAGS) -c $< -o $@
