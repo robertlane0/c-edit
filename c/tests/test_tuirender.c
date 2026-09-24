@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "edit/fb.h"
@@ -224,6 +225,49 @@ int main(void) {
         size_t n = edit_tui_render(&tui, &got);
         CHECK(n > 0 && got != NULL);
         CHECK(memmem(got, n, "row", 3) != NULL);
+    }
+
+    // Editline: typed text and the cursor reach the framebuffer.
+    {
+        char *buf = NULL;
+        size_t len = 0, cap = 0;
+        edit_ctx_t ctx;
+        CHECK(edit_tui_begin(&tui, NULL, &ctx) == 0);
+        (void)edit_ctx_editline_str(&ctx, "name", &buf, &len, &cap);
+        edit_ctx_steal_focus(&ctx);
+        edit_tui_end(&tui, &ctx);
+        for (int i = 0; i < 30 && edit_tui_needs_settling(&tui); ++i) {
+            CHECK(edit_tui_begin(&tui, NULL, &ctx) == 0);
+            (void)edit_ctx_editline_str(&ctx, "name", &buf, &len, &cap);
+            edit_tui_end(&tui, &ctx);
+        }
+        for (int i = 0; i < 3; ++i) {
+            static const char *letters = "hey";
+            edit_input_t text;
+            memset(&text, 0, sizeof text);
+            text.kind = EDIT_IN_TEXT;
+            text.text.ptr = (const uint8_t *)(letters + i);
+            text.text.len = 1;
+            CHECK(edit_tui_begin(&tui, &text, &ctx) == 0);
+            (void)edit_ctx_editline_str(&ctx, "name", &buf, &len, &cap);
+            edit_tui_end(&tui, &ctx);
+            for (int k = 0; k < 30 && edit_tui_needs_settling(&tui); ++k) {
+                CHECK(edit_tui_begin(&tui, NULL, &ctx) == 0);
+                (void)edit_ctx_editline_str(&ctx, "name", &buf, &len, &cap);
+                edit_tui_end(&tui, &ctx);
+            }
+        }
+        CHECK(len == 3 && memcmp(buf, "hey", 3) == 0);
+        // Render and require the field text plus a visible cursor.
+        CHECK(edit_tui_begin(&tui, NULL, &ctx) == 0);
+        (void)edit_ctx_editline_str(&ctx, "name", &buf, &len, &cap);
+        edit_tui_end(&tui, &ctx);
+        const char *got = NULL;
+        size_t n = edit_tui_render(&tui, &got);
+        CHECK(n > 0 && got != NULL);
+        CHECK(memmem(got, n, "hey", 3) != NULL);
+        CHECK(memmem(got, n, "\x1b[?25h", 6) != NULL);
+        free(buf);
     }
 
     // NULL safety.

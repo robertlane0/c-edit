@@ -126,6 +126,21 @@ int main(void) {
         close(fd);
     }
 
+    edit_app_t argapp;
+    CHECK(edit_app_init(&argapp) == 0);
+    {
+        // Absolute argv paths replace the cwd (cf. Rust Path::join).
+        char *argv[3] = {(char *)"edit", file1, NULL};
+        bool early = false;
+        edit_error_t err;
+        CHECK(edit_app_handle_args(&argapp, 2, argv, &early, &err) == 0);
+        CHECK(!early);
+        CHECK(edit_app_active(&argapp) != NULL);
+        CHECK(strcmp(edit_app_active(&argapp)->path, file1) == 0);
+        CHECK(edit_tbuf_len(&edit_app_active(&argapp)->buffer->tbuf) == 18);
+    }
+    edit_app_destroy(&argapp);
+
     edit_app_t app;
     CHECK(edit_app_init(&app) == 0);
 
@@ -269,6 +284,28 @@ int main(void) {
             edit_tui_end(&tui, &ctx);
         }
         CHECK(edit_tbuf_is_dirty(&edit_app_active(&app)->buffer->tbuf));
+        // Many lines: the margin width tracks the line count (Rust reflow).
+        for (int i = 0; i < 12; ++i) {
+            edit_input_t nl;
+            memset(&nl, 0, sizeof nl);
+            nl.kind = EDIT_IN_TEXT;
+            const char *crlf = "x\r";
+            nl.text.ptr = (const uint8_t *)crlf;
+            nl.text.len = 2;
+            CHECK(edit_tui_begin(&tui, &nl, &ctx) == 0);
+            edit_app_draw(&ctx, &app);
+            edit_tui_end(&tui, &ctx);
+            for (int k = 0; k < 30 && edit_tui_needs_settling(&tui); ++k) {
+                CHECK(edit_tui_begin(&tui, NULL, &ctx) == 0);
+                edit_app_draw(&ctx, &app);
+                edit_tui_end(&tui, &ctx);
+            }
+        }
+        edit_tbuf_t *mtb = &edit_app_active(&app)->buffer->tbuf;
+        CHECK(edit_tbuf_logical_lines(mtb) > 10);
+        CHECK(edit_tbuf_margin_width(mtb) >= 5);
+        const char *mout = NULL;
+        edit_tui_render(&tui, &mout); // sync before the next assertions
         // Ctrl+S saves the active (named) document.
         edit_input_t save;
         memset(&save, 0, sizeof save);
