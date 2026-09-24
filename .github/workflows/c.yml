@@ -4,11 +4,21 @@ on:
   push:
   pull_request:
 
+env:
+  # The Rust reference is frozen at v1.0.0 and must keep compiling as-is, so
+  # CI uses an explicit nightly instead of whatever `nightly` currently is
+  # (newer nightlies moved Vec::new_in behind #![feature(allocator_ext)]).
+  RUST_TOOLCHAIN: nightly-2026-09-20
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustc +"$RUST_TOOLCHAIN" --version
       - name: Build
         run: make
       - name: Tests
@@ -25,16 +35,16 @@ jobs:
           python3 -m pip install --quiet "clang-format==22.1.8"
           make format-check
       - name: Rust parity
-        run: cargo +nightly test
+        run: cargo +"$RUST_TOOLCHAIN" test
       - name: PTY differential (Rust vs C)
         run: |
-          cargo +nightly build --bin edit
+          cargo +"$RUST_TOOLCHAIN" build --bin edit
           make build/edit
           python3 tools/diff_edit_pty.py
       - name: Benchmarks (report only)
         continue-on-error: true
         run: |
           make bench > c-bench.txt
-          cargo +nightly bench --bench lib -- \
+          cargo +"$RUST_TOOLCHAIN" bench --bench lib -- \
             --warm-up-time 1 --measurement-time 2 --sample-size 30 > rust-bench.txt 2>&1
           python3 tools/bench_compare.py --c c-bench.txt --rust rust-bench.txt

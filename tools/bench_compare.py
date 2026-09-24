@@ -88,9 +88,11 @@ def run_c():
 
 
 def run_rust():
+    # Same pinned toolchain the CI workflow uses for the frozen Rust reference.
+    toolchain = os.environ.get("RUST_TOOLCHAIN", "nightly-2026-09-20")
     with open(RUST_OUT, "w", encoding="utf-8") as f:
         subprocess.run(
-            ["cargo", "+nightly", "bench", "--bench", "lib", "--",
+            ["cargo", f"+{toolchain}", "bench", "--bench", "lib", "--",
              "--warm-up-time", "1", "--measurement-time", "2", "--sample-size", "30"],
             cwd=ROOT, stdout=f, stderr=subprocess.STDOUT, check=False,
         )
