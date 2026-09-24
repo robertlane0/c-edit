@@ -1458,6 +1458,7 @@ void edit_ctx_scrollarea_begin(edit_ctx_t *ctx, const char *classname, edit_size
         container->intrinsic_set = true;
     }
     edit_ctx_block_begin(ctx, "content");
+    edit_ctx_inherit_focus(ctx);
     // Attribute tweaks apply to the outer container (restore current).
     if (ctx->tree.last_node != NULL) {
         ctx->tree.last_node = container;

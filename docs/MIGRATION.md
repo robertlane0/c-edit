@@ -100,6 +100,13 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - editbin: 21 checks, PTY-driven `--help`/`--version`/interactive flows
   (setup handshake, render, type, unsaved-changes prompt, clean exit,
   alt-screen restore), ASan/UBSan clean.
+- PTY differential: `tools/diff_edit_pty.py` drives `target/debug/edit` and
+  `build/edit` through 25 scenarios (startup, typing, UTF-8, paste, nav,
+  search/replace, menus, save/quit prompts, document picker, indent, undo)
+  and compares raw VT byte streams: all byte-identical. Two real bugs were
+  found this way: the OSC title is appended after the frame (not prepended),
+  and `scrollarea_begin` must inherit focus onto its content block so lists
+  inside modals get focus/selection colors.
 - astring: invalid UTF-8 / split-codepoint args now rejected in every build
   (release included), fixing the previous NDEBUG unused-function failure.
 - Notable: upstream find_and_replace_all loops forever (stale ICU chunks

@@ -310,7 +310,9 @@ edit_tty_read_t edit_tty_read(uint8_t **out, size_t *out_len, int64_t timeout_ms
                 uint8_t *combo = (uint8_t *)malloc(text_len + (size_t)n);
                 if (combo != NULL) {
                     memcpy(combo, seq, (size_t)n);
-                    memcpy(combo + (size_t)n, text, text_len);
+                    if (text_len > 0) {
+                        memcpy(combo + (size_t)n, text, text_len);
+                    }
                     free(text);
                     text = combo;
                     text_len += (size_t)n;

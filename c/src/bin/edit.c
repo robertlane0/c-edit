@@ -311,11 +311,14 @@ static int run(int argc, char **argv) {
         if (app.exit) {
             break;
         }
-
         // Render the UI and write it to the terminal.
         {
             const char *output = NULL;
             size_t output_len = edit_tui_render(&tui, &output);
+            if (output != NULL && output_len > 0) {
+                edit_tty_write((const uint8_t *)output, output_len);
+            }
+            // Title is appended after the frame output (cf. write_terminal_title).
             edit_app_doc_t *doc = edit_app_active(&app);
             const char *filename = (doc != NULL && doc->filename != NULL) ? doc->filename : "";
             if (app.osc_title_filename == NULL || strcmp(filename, app.osc_title_filename) != 0) {
@@ -323,27 +326,11 @@ static int run(int argc, char **argv) {
                 char *seq = (char *)malloc(n + 1);
                 if (seq != NULL) {
                     edit_app_title_seq(seq, n + 1, filename);
-                    // Prepend the title: render into a combined buffer.
-                    size_t total = n + output_len;
-                    char *combined = (char *)malloc(total + 1);
-                    if (combined != NULL) {
-                        memcpy(combined, seq, n);
-                        if (output != NULL && output_len > 0) {
-                            memcpy(combined + n, output, output_len);
-                        }
-                        edit_tty_write((const uint8_t *)combined, total);
-                        free(combined);
-                    } else {
-                        edit_tty_write((const uint8_t *)output, output_len);
-                    }
+                    edit_tty_write((const uint8_t *)seq, n);
                     free(seq);
-                } else {
-                    edit_tty_write((const uint8_t *)output, output_len);
                 }
                 free(app.osc_title_filename);
                 app.osc_title_filename = strdup(filename);
-            } else if (output != NULL && output_len > 0) {
-                edit_tty_write((const uint8_t *)output, output_len);
             }
 
             if (app.osc_clip_send == edit_tui_clipboard_gen(&tui)) {
