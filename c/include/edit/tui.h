@@ -9,6 +9,7 @@
 #include "edit/fb.h"
 #include "edit/helpers.h"
 #include "edit/input.h"
+#include "edit/tbuf.h"
 #include "edit/tree.h"
 
 #ifdef __cplusplus
@@ -53,6 +54,14 @@ typedef struct {
     size_t clipboard_len;
     size_t clipboard_cap;
     uint32_t clipboard_gen;
+    // Cached editline buffers by node id (seen flags pruned per frame).
+    struct {
+        uint64_t node_id;
+        edit_shared_tbuf_t *editor;
+        bool seen;
+    } *tbuf_cache;
+    size_t tbuf_cache_len;
+    size_t tbuf_cache_cap;
     int32_t settling_have;
     int32_t settling_want;
     int64_t read_timeout;
@@ -100,6 +109,11 @@ bool edit_tui_needs_settling(edit_tui_t *t);
 // Focus helpers for widgets.
 bool edit_tui_is_focused(const edit_tui_t *t, uint64_t id);
 void edit_tui_steal_focus(edit_tui_t *t, edit_tnode_t *node);
+
+// Textarea/editline widgets (cf. Rust Context::textarea/editline).
+// Editline syncs a caller doc; returns true if contents changed.
+bool edit_ctx_editline(edit_ctx_t *ctx, const char *classname, edit_doc_t *doc);
+void edit_ctx_textarea(edit_ctx_t *ctx, const char *classname, edit_shared_tbuf_t *shared);
 
 // Context block + attribute builders (cf. Rust Context widget fns).
 void edit_ctx_block_begin(edit_ctx_t *ctx, const char *classname);

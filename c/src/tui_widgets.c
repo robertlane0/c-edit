@@ -8,6 +8,7 @@
 #include "edit/input.h"
 #include "edit/measure.h"
 #include "edit/uitext.h"
+#include "tbuf_priv.h"
 
 // Arena text/chunk appends (frame lifetime, no destructors needed).
 static bool text_append(edit_ctx_t *ctx, edit_tnode_t *node, const char *text, size_t len) {
@@ -606,4 +607,680 @@ bool edit_ctx_checkbox(edit_ctx_t *ctx, const char *classname, const char *text,
         *checked = !*checked;
     }
     return activated;
+}
+
+static void textarea_make_visible(edit_tbuf_t *tb, const edit_tnode_t *node, int32_t *scroll_x,
+                                  int32_t *scroll_y) {
+    int32_t text_width = edit_tbuf_text_width(tb);
+    int32_t cursor_x = edit_tbuf_cursor_visual(tb).x;
+    if (*scroll_x > cursor_x - 10) {
+        *scroll_x = cursor_x - 10;
+    }
+    if (*scroll_x < cursor_x - text_width + 10) {
+        *scroll_x = cursor_x - text_width + 10;
+    }
+    int32_t viewport_h = node->inner.bottom - node->inner.top;
+    int32_t cursor_y = edit_tbuf_cursor_visual(tb).y;
+    if (*scroll_y > cursor_y) {
+        *scroll_y = cursor_y;
+    }
+    if (*scroll_y < cursor_y - viewport_h + 1) {
+        *scroll_y = cursor_y - viewport_h + 1;
+    }
+}
+
+static void textarea_adjust(edit_tbuf_t *tb, int32_t xmax, int32_t *scroll_x, int32_t *scroll_y) {
+    int32_t cx = edit_tbuf_cursor_visual(tb).x;
+    int32_t lim = xmax > cx ? xmax : cx;
+    if (*scroll_x > lim - 10) {
+        *scroll_x = lim - 10;
+    }
+    if (*scroll_x < 0) {
+        *scroll_x = 0;
+    }
+    int32_t lines = edit_tbuf_visual_lines(tb);
+    if (*scroll_y < 0) {
+        *scroll_y = 0;
+    }
+    if (*scroll_y > lines - 1) {
+        *scroll_y = lines - 1;
+    }
+    if (edit_tbuf_is_wrap(tb)) {
+        *scroll_x = 0;
+    }
+}
+
+// Drag-scroll speed table (mirrors Rust calc()).
+static int32_t drag_speed(int32_t mn, int32_t mx, int32_t mouse) {
+    int32_t zone = (mx - mn) / 2;
+    if (zone > 3) {
+        zone = 3;
+    }
+    int32_t s0 = mn + zone;
+    int32_t s1 = mx - zone - 1;
+    int32_t a = mouse - s0;
+    if (a < -zone) {
+        a = -zone;
+    }
+    if (a > 0) {
+        a = 0;
+    }
+    int32_t b = mouse - s1;
+    if (b < 0) {
+        b = 0;
+    }
+    if (b > zone) {
+        b = zone;
+    }
+    int32_t idx = 3 + a + b;
+    if (idx < 0) {
+        idx = 0;
+    }
+    if (idx > 6) {
+        idx = 6;
+    }
+    static const int32_t speeds[7] = {-9, -3, -1, 0, 1, 3, 9};
+    return speeds[idx];
+}
+
+static bool handle_input(edit_ctx_t *ctx, edit_tbuf_t *tb, edit_tnode_t *node,
+                         const edit_tnode_t *prev, bool single_line) {
+    edit_tui_t *tui = ctx->tui;
+    if (ctx->consumed) {
+        return false;
+    }
+    bool visible = false;
+
+    if (tui->mouse_state != EDIT_MOUSE_NONE && prev != NULL && tui->mouse_down_len > 0 &&
+        tui->mouse_down_path[tui->mouse_down_len - 1] == prev->id) {
+        if (tui->mouse_state == EDIT_MOUSE_SCROLL) {
+            node->ta_scroll.x += ctx->scroll_delta.x;
+            node->ta_scroll.y += ctx->scroll_delta.y;
+            ctx->consumed = true;
+        } else if (edit_tui_is_focused(tui, prev->id)) {
+            edit_point_t mouse = tui->mouse_pos;
+            edit_rect_t inner = prev->inner;
+            int32_t margin = edit_tbuf_margin_width(tb);
+            edit_rect_t text_rect = {inner.left + margin, inner.top,
+                                     inner.right - (single_line ? 0 : 1), inner.bottom};
+            edit_rect_t track = {text_rect.right, inner.top, inner.right, inner.bottom};
+            edit_point_t pos = {mouse.x - inner.left - margin + node->ta_scroll.x,
+                                mouse.y - inner.top + node->ta_scroll.y};
+            if (edit_rect_contains(text_rect, tui->mouse_down_pos)) {
+                if (tui->mouse_is_drag) {
+                    edit_tbuf_selection_update_visual(tb, pos);
+                    node->ta_preferred = edit_tbuf_cursor_visual(tb).x;
+                    int32_t height = inner.bottom - inner.top;
+                    if (height >= 2) {
+                        int32_t dx = drag_speed(text_rect.left, text_rect.right, mouse.x);
+                        int32_t dy = drag_speed(text_rect.top, text_rect.bottom, mouse.y);
+                        node->ta_scroll.x += dx;
+                        node->ta_scroll.y += dy;
+                        if (dx != 0 || dy != 0) {
+                            tui->read_timeout = 25;
+                        }
+                    }
+                } else {
+                    if (ctx->mouse_click >= 5) {
+                    } else if (ctx->mouse_click == 4) {
+                        edit_tbuf_select_all(tb);
+                    } else if (ctx->mouse_click == 3) {
+                        edit_tbuf_select_line(tb);
+                    } else if (ctx->mouse_click == 2) {
+                        edit_tbuf_select_word(tb);
+                    } else if (tui->mouse_state == EDIT_MOUSE_LEFT) {
+                        if (edit_mod_contains(ctx->mouse_mods, EDIT_KBMOD_SHIFT)) {
+                            edit_tbuf_selection_update_visual(tb, pos);
+                        } else {
+                            edit_tbuf_goto_visual(tb, pos);
+                        }
+                        node->ta_preferred = edit_tbuf_cursor_visual(tb).x;
+                        visible = true;
+                    } else {
+                        return false;
+                    }
+                }
+            } else if (edit_rect_contains(track, tui->mouse_down_pos)) {
+                if (tui->mouse_state == EDIT_MOUSE_RELEASE) {
+                    node->ta_drag_start = INT32_MIN;
+                } else if (tui->mouse_is_drag) {
+                    if (node->ta_drag_start == INT32_MIN) {
+                        node->ta_drag_start = node->ta_scroll.y;
+                    }
+                    int32_t scrollable = edit_tbuf_visual_lines(tb) - 1;
+                    if (scrollable > 0) {
+                        int32_t trackable = track.bottom - track.top - node->ta_thumb;
+                        int32_t dy = mouse.y - tui->mouse_down_pos.y;
+                        if (trackable > 0) {
+                            node->ta_scroll.y = node->ta_drag_start + (dy * scrollable) / trackable;
+                        }
+                    }
+                }
+            }
+            ctx->consumed = true;
+        }
+        return visible;
+    }
+
+    if (!node->ta_has_focus) {
+        return false;
+    }
+
+    const uint8_t *write = (const uint8_t *)"";
+    size_t write_len = 0;
+    bool write_raw = false;
+
+    if (ctx->has_text) {
+        write = ctx->text_ptr;
+        write_len = ctx->text_len;
+        write_raw = ctx->text_bracketed;
+        node->ta_preferred = edit_tbuf_cursor_visual(tb).x;
+        visible = true;
+    } else if (ctx->has_key) {
+        uint32_t code = edit_key_code(ctx->key);
+        uint32_t mods = edit_key_modifiers(ctx->key);
+        visible = true;
+        switch (code) {
+        case EDIT_VK_BACK:
+            edit_tbuf_delete(tb, (mods == EDIT_KBMOD_CTRL) ? EDIT_MOVE_WORD : EDIT_MOVE_GRAPHEME,
+                             -1);
+            break;
+        case EDIT_VK_TAB:
+            if (single_line) {
+                return false;
+            }
+            if (mods == EDIT_KBMOD_SHIFT) {
+                edit_tbuf_unindent(tb);
+            } else {
+                write = (const uint8_t *)"\t";
+                write_len = 1;
+            }
+            break;
+        case EDIT_VK_RETURN:
+            if (single_line) {
+                return false;
+            }
+            write = (const uint8_t *)"\n";
+            write_len = 1;
+            break;
+        case EDIT_VK_ESCAPE:
+            if (!edit_tbuf_clear_selection(tb)) {
+                if (single_line) {
+                    return false;
+                }
+                visible = false;
+            }
+            break;
+        case EDIT_VK_PRIOR: {
+            int32_t height = prev->inner.bottom - prev->inner.top - 1;
+            if (edit_tbuf_cursor_visual(tb).y == 0) {
+                node->ta_preferred = 0;
+            }
+            edit_point_t p = {node->ta_preferred, edit_tbuf_cursor_visual(tb).y - height};
+            if (mods == EDIT_KBMOD_SHIFT) {
+                edit_tbuf_selection_update_visual(tb, p);
+            } else {
+                edit_tbuf_goto_visual(tb, p);
+            }
+            break;
+        }
+        case EDIT_VK_NEXT: {
+            int32_t height = prev->inner.bottom - prev->inner.top - 1;
+            if (edit_tbuf_cursor_visual(tb).y >= edit_tbuf_visual_lines(tb) - 1) {
+                node->ta_preferred = INT32_MAX;
+            }
+            edit_point_t p = {node->ta_preferred, edit_tbuf_cursor_visual(tb).y + height};
+            if (mods == EDIT_KBMOD_SHIFT) {
+                edit_tbuf_selection_update_visual(tb, p);
+            } else {
+                edit_tbuf_goto_visual(tb, p);
+            }
+            if (node->ta_preferred == INT32_MAX) {
+                node->ta_preferred = edit_tbuf_cursor_visual(tb).x;
+            }
+            break;
+        }
+        case EDIT_VK_END: {
+            edit_point_t before = edit_tbuf_cursor_logical(tb);
+            edit_point_t dest;
+            if (edit_mod_contains(mods, EDIT_KBMOD_CTRL)) {
+                dest.x = INT32_MAX;
+                dest.y = INT32_MAX;
+            } else {
+                dest.x = INT32_MAX;
+                dest.y = edit_tbuf_cursor_visual(tb).y;
+            }
+            if (edit_mod_contains(mods, EDIT_KBMOD_SHIFT)) {
+                edit_tbuf_selection_update_visual(tb, dest);
+            } else {
+                edit_tbuf_goto_visual(tb, dest);
+            }
+            if (!edit_mod_contains(mods, EDIT_KBMOD_CTRL)) {
+                edit_point_t after = edit_tbuf_cursor_logical(tb);
+                if (edit_tbuf_is_wrap(tb) && after.x == before.x && after.y == before.y) {
+                    edit_point_t p = {INT32_MAX, edit_tbuf_cursor_logical(tb).y};
+                    if (mods == EDIT_KBMOD_SHIFT) {
+                        edit_tbuf_selection_update_logical(tb, p);
+                    } else {
+                        edit_tbuf_goto_logical(tb, p);
+                    }
+                }
+            }
+            break;
+        }
+        case EDIT_VK_HOME: {
+            edit_point_t before = edit_tbuf_cursor_logical(tb);
+            edit_point_t dest;
+            if (edit_mod_contains(mods, EDIT_KBMOD_CTRL)) {
+                dest.x = 0;
+                dest.y = 0;
+            } else {
+                dest.x = 0;
+                dest.y = edit_tbuf_cursor_visual(tb).y;
+            }
+            if (edit_mod_contains(mods, EDIT_KBMOD_SHIFT)) {
+                edit_tbuf_selection_update_visual(tb, dest);
+            } else {
+                edit_tbuf_goto_visual(tb, dest);
+            }
+            if (!edit_mod_contains(mods, EDIT_KBMOD_CTRL)) {
+                edit_point_t after = edit_tbuf_cursor_logical(tb);
+                if (edit_tbuf_is_wrap(tb) && after.x == before.x && after.y == before.y) {
+                    edit_point_t p = {0, edit_tbuf_cursor_logical(tb).y};
+                    if (mods == EDIT_KBMOD_SHIFT) {
+                        edit_tbuf_selection_update_logical(tb, p);
+                    } else {
+                        edit_tbuf_goto_logical(tb, p);
+                    }
+                    after = edit_tbuf_cursor_logical(tb);
+                }
+                edit_point_t indent = edit_tbuf_indent_end(tb);
+                if (after.x == 0 &&
+                    (before.y > indent.y || (before.y == indent.y && before.x > indent.x))) {
+                    if (edit_mod_contains(mods, EDIT_KBMOD_SHIFT)) {
+                        edit_tbuf_selection_update_logical(tb, indent);
+                    } else {
+                        edit_tbuf_goto_logical(tb, indent);
+                    }
+                }
+            }
+            break;
+        }
+        case EDIT_VK_LEFT: {
+            bool word = edit_mod_contains(mods, EDIT_KBMOD_CTRL);
+            if (edit_mod_contains(mods, EDIT_KBMOD_SHIFT)) {
+                edit_tbuf_selection_update_delta(tb, word ? EDIT_MOVE_WORD : EDIT_MOVE_GRAPHEME,
+                                                 -1);
+            } else {
+                edit_cursor_t b;
+                edit_cursor_t e;
+                if (edit_tbuf_selection_range(tb, &b, &e)) {
+                    tbuf_set_cursor_internal(tb, b);
+                    tb->hist_last = 0;
+                    edit_point_t z = {0, 0};
+                    tbuf_set_selection(tb, false, z, z);
+                } else {
+                    edit_tbuf_move_delta(tb, word ? EDIT_MOVE_WORD : EDIT_MOVE_GRAPHEME, -1);
+                }
+            }
+            break;
+        }
+        case EDIT_VK_UP:
+            if (mods == EDIT_KBMOD_NONE) {
+                int32_t x = node->ta_preferred;
+                int32_t y = edit_tbuf_cursor_visual(tb).y - 1;
+                edit_cursor_t b;
+                edit_cursor_t e;
+                if (edit_tbuf_selection_range(tb, &b, &e)) {
+                    x = b.visual.x;
+                    y = b.visual.y - 1;
+                    node->ta_preferred = x;
+                }
+                if (y < 0) {
+                    x = 0;
+                    node->ta_preferred = 0;
+                }
+                edit_tbuf_goto_visual(tb, (edit_point_t){x, y});
+            } else if (mods == EDIT_KBMOD_CTRL) {
+                node->ta_scroll.y -= 1;
+                visible = false;
+            } else if (mods == EDIT_KBMOD_SHIFT) {
+                if (edit_tbuf_cursor_visual(tb).y == 0) {
+                    node->ta_preferred = 0;
+                }
+                edit_point_t p = {node->ta_preferred, edit_tbuf_cursor_visual(tb).y - 1};
+                edit_tbuf_selection_update_visual(tb, p);
+            } else if (mods == (EDIT_KBMOD_CTRL | EDIT_KBMOD_ALT)) {
+                // TODO: multi-cursor above (unimplemented in Rust).
+            } else {
+                return false;
+            }
+            break;
+        case EDIT_VK_RIGHT: {
+            bool word = edit_mod_contains(mods, EDIT_KBMOD_CTRL);
+            if (edit_mod_contains(mods, EDIT_KBMOD_SHIFT)) {
+                edit_tbuf_selection_update_delta(tb, word ? EDIT_MOVE_WORD : EDIT_MOVE_GRAPHEME, 1);
+            } else {
+                edit_cursor_t b;
+                edit_cursor_t e;
+                if (edit_tbuf_selection_range(tb, &b, &e)) {
+                    tbuf_set_cursor_internal(tb, e);
+                    tb->hist_last = 0;
+                    edit_point_t z = {0, 0};
+                    tbuf_set_selection(tb, false, z, z);
+                } else {
+                    edit_tbuf_move_delta(tb, word ? EDIT_MOVE_WORD : EDIT_MOVE_GRAPHEME, 1);
+                }
+            }
+            break;
+        }
+        case EDIT_VK_DOWN:
+            if (mods == EDIT_KBMOD_NONE) {
+                int32_t x = node->ta_preferred;
+                int32_t y = edit_tbuf_cursor_visual(tb).y + 1;
+                edit_cursor_t b;
+                edit_cursor_t e;
+                if (edit_tbuf_selection_range(tb, &b, &e)) {
+                    x = e.visual.x;
+                    y = e.visual.y + 1;
+                    node->ta_preferred = x;
+                }
+                if (y >= edit_tbuf_visual_lines(tb)) {
+                    x = INT32_MAX;
+                }
+                edit_tbuf_goto_visual(tb, (edit_point_t){x, y});
+                if (x == INT32_MAX) {
+                    node->ta_preferred = edit_tbuf_cursor_visual(tb).x;
+                }
+            } else if (mods == EDIT_KBMOD_CTRL) {
+                node->ta_scroll.y += 1;
+                visible = false;
+            } else if (mods == EDIT_KBMOD_SHIFT) {
+                if (edit_tbuf_cursor_visual(tb).y >= edit_tbuf_visual_lines(tb) - 1) {
+                    node->ta_preferred = INT32_MAX;
+                }
+                edit_point_t p = {node->ta_preferred, edit_tbuf_cursor_visual(tb).y + 1};
+                edit_tbuf_selection_update_visual(tb, p);
+                if (node->ta_preferred == INT32_MAX) {
+                    node->ta_preferred = edit_tbuf_cursor_visual(tb).x;
+                }
+            } else if (mods == (EDIT_KBMOD_CTRL | EDIT_KBMOD_ALT)) {
+                // TODO: multi-cursor below (unimplemented in Rust).
+            } else {
+                return false;
+            }
+            break;
+        case EDIT_VK_INSERT:
+            if (mods == EDIT_KBMOD_SHIFT) {
+                size_t n = 0;
+                const uint8_t *cb = edit_tui_clipboard(tui, &n);
+                write = cb;
+                write_len = n;
+                write_raw = true;
+            } else if (mods == EDIT_KBMOD_CTRL) {
+                size_t n = 0;
+                uint8_t *sel = edit_tbuf_extract_selection(tb, false, &n);
+                if (sel != NULL) {
+                    edit_tui_set_clipboard(tui, sel, n);
+                    free(sel);
+                }
+            } else {
+                edit_tbuf_set_overtype(tb, !edit_tbuf_is_overtype(tb));
+            }
+            break;
+        case EDIT_VK_DELETE:
+            if (mods == EDIT_KBMOD_SHIFT) {
+                size_t n = 0;
+                uint8_t *sel = edit_tbuf_extract_selection(tb, true, &n);
+                if (sel != NULL) {
+                    edit_tui_set_clipboard(tui, sel, n);
+                    free(sel);
+                }
+            } else if (mods == EDIT_KBMOD_CTRL) {
+                edit_tbuf_delete(tb, EDIT_MOVE_WORD, 1);
+            } else {
+                edit_tbuf_delete(tb, EDIT_MOVE_GRAPHEME, 1);
+            }
+            break;
+        case 'A':
+            if (mods == EDIT_KBMOD_CTRL) {
+                edit_tbuf_select_all(tb);
+            } else {
+                return false;
+            }
+            break;
+        case 'H':
+            if (mods == EDIT_KBMOD_CTRL) {
+                edit_tbuf_delete(tb, EDIT_MOVE_WORD, -1);
+            } else {
+                return false;
+            }
+            break;
+        case 'X':
+            if (mods == EDIT_KBMOD_CTRL) {
+                size_t n = 0;
+                uint8_t *sel = edit_tbuf_extract_selection(tb, true, &n);
+                if (sel != NULL) {
+                    edit_tui_set_clipboard(tui, sel, n);
+                    free(sel);
+                }
+            } else {
+                return false;
+            }
+            break;
+        case 'C':
+            if (mods == EDIT_KBMOD_CTRL) {
+                size_t n = 0;
+                uint8_t *sel = edit_tbuf_extract_selection(tb, false, &n);
+                if (sel != NULL) {
+                    edit_tui_set_clipboard(tui, sel, n);
+                    free(sel);
+                }
+            } else {
+                return false;
+            }
+            break;
+        case 'V':
+            if (mods == EDIT_KBMOD_CTRL) {
+                size_t n = 0;
+                write = edit_tui_clipboard(tui, &n);
+                write_len = n;
+                write_raw = true;
+            } else {
+                return false;
+            }
+            break;
+        case 'Y':
+            if (mods == EDIT_KBMOD_CTRL) {
+                edit_tbuf_redo(tb);
+            } else {
+                return false;
+            }
+            break;
+        case 'Z':
+            if (mods == EDIT_KBMOD_CTRL) {
+                edit_tbuf_undo(tb);
+            } else if (mods == (EDIT_KBMOD_CTRL | EDIT_KBMOD_SHIFT)) {
+                edit_tbuf_redo(tb);
+            } else if (mods == EDIT_KBMOD_ALT) {
+                edit_tbuf_set_wrap(tb, !edit_tbuf_is_wrap(tb));
+            } else {
+                return false;
+            }
+            break;
+        default:
+            return false;
+        }
+
+        if (code != EDIT_VK_PRIOR && code != EDIT_VK_NEXT && code != EDIT_VK_UP &&
+            code != EDIT_VK_DOWN) {
+            node->ta_preferred = edit_tbuf_cursor_visual(tb).x;
+        }
+    } else {
+        return false;
+    }
+
+    if (single_line && write_len > 0) {
+        size_t end = 0;
+        int32_t line = 0;
+        edit_newlines_forward(write, write_len, 0, 0, 1, &end, &line);
+        write_len = edit_strip_newline(write, end);
+    }
+    if (write_len > 0) {
+        edit_tbuf_write(tb, write, write_len, write_raw);
+    }
+
+    ctx->consumed = true;
+    return visible;
+}
+
+static bool textarea_internal(edit_ctx_t *ctx, const char *classname, bool single_line,
+                              edit_doc_t *edit_doc, edit_shared_tbuf_t *shared, bool *out_dirty) {
+    if (out_dirty != NULL) {
+        *out_dirty = false;
+    }
+    if (ctx == NULL) {
+        return false;
+    }
+    edit_ctx_block_begin(ctx, classname);
+    edit_ctx_block_end(ctx);
+    edit_tnode_t *node = ctx->tree.last_node;
+    if (node == NULL) {
+        return false;
+    }
+
+    // Cached editor by node id (editline owns one; textarea borrows shared).
+    edit_tbuf_t *tb = NULL;
+    if (single_line) {
+        edit_tui_t *tui = ctx->tui;
+        edit_shared_tbuf_t *cached = NULL;
+        for (size_t i = 0; i < tui->tbuf_cache_len; ++i) {
+            if (tui->tbuf_cache[i].node_id == node->id) {
+                cached = tui->tbuf_cache[i].editor;
+                tui->tbuf_cache[i].seen = true;
+                break;
+            }
+        }
+        if (cached == NULL) {
+            if (edit_shared_tbuf_create(&cached, true) != 0) {
+                return false;
+            }
+            if (tui->tbuf_cache_len == tui->tbuf_cache_cap) {
+                size_t grown = tui->tbuf_cache_cap != 0 ? tui->tbuf_cache_cap * 2 : 16;
+                void *nb = realloc(tui->tbuf_cache, grown * sizeof(*tui->tbuf_cache));
+                if (nb == NULL) {
+                    edit_shared_release(cached);
+                    return false;
+                }
+                tui->tbuf_cache = nb;
+                tui->tbuf_cache_cap = grown;
+            }
+            tui->tbuf_cache[tui->tbuf_cache_len].node_id = node->id;
+            tui->tbuf_cache[tui->tbuf_cache_len].editor = cached;
+            tui->tbuf_cache[tui->tbuf_cache_len].seen = true;
+            tui->tbuf_cache_len += 1;
+        }
+        tb = &cached->tbuf;
+    } else {
+        if (shared == NULL) {
+            return false;
+        }
+        tb = &shared->tbuf;
+    }
+
+    node->content_kind = 5;
+    node->ta_buffer = single_line ? NULL : (void *)shared;
+    // Retain scroll etc. across frames via prev node below; init defaults.
+    node->ta_scroll.x = 0;
+    node->ta_scroll.y = 0;
+    node->ta_drag_start = INT32_MIN;
+    node->ta_xmax = 0;
+    node->ta_thumb = 0;
+    node->ta_preferred = 0;
+    node->ta_single_line = single_line;
+    node->ta_has_focus = edit_tui_is_focused(ctx->tui, node->id);
+
+    if (single_line && edit_doc != NULL) {
+        // Sync the field buffer from the caller document.
+        edit_tbuf_copy_from(tb, edit_doc);
+    }
+
+    edit_tnode_t *prev = edit_nodemap_get(&ctx->tui->prev_map, node->id);
+    if (prev != NULL && prev->content_kind == 5) {
+        node->ta_scroll = prev->ta_scroll;
+        node->ta_drag_start = prev->ta_drag_start;
+        node->ta_xmax = prev->ta_xmax;
+        node->ta_thumb = prev->ta_thumb;
+        node->ta_preferred = prev->ta_preferred;
+
+        int32_t text_width = node->ta_single_line ? INT32_MAX : 0;
+        (void)text_width;
+        bool make_visible = false;
+        // Width sync + input handling (mirrors Rust ordering).
+        {
+            // text_width = prev inner width (-1 scrollbar when multiline).
+            int32_t width = prev->inner.right - prev->inner.left;
+            if (!single_line) {
+                width -= 1;
+            }
+            if (edit_tbuf_set_width(tb, width)) {
+                make_visible = true;
+            }
+        }
+        make_visible |= handle_input(ctx, tb, node, prev, single_line);
+        if (make_visible) {
+            int32_t sx = node->ta_scroll.x;
+            int32_t sy = node->ta_scroll.y;
+            textarea_make_visible(tb, prev, &sx, &sy);
+            node->ta_scroll.x = sx;
+            node->ta_scroll.y = sy;
+        }
+    }
+
+    bool dirty = edit_tbuf_is_dirty(tb);
+    if (dirty && single_line && edit_doc != NULL) {
+        edit_tbuf_save_to(tb, edit_doc);
+    }
+
+    {
+        int32_t sx = node->ta_scroll.x;
+        int32_t sy = node->ta_scroll.y;
+        textarea_adjust(tb, node->ta_xmax, &sx, &sy);
+        node->ta_scroll.x = sx;
+        node->ta_scroll.y = sy;
+    }
+
+    if (single_line) {
+        node->attributes.fg = edit_tui_indexed(ctx->tui, EDIT_FB_FOREGROUND);
+        node->attributes.bg = edit_tui_indexed(ctx->tui, EDIT_FB_BACKGROUND);
+        if (!node->ta_has_focus) {
+            node->attributes.fg = edit_tui_contrasted(ctx->tui, node->attributes.bg);
+            node->attributes.bg = edit_tui_indexed_alpha(ctx->tui, EDIT_FB_BACKGROUND, 1, 2);
+        }
+    }
+
+    node->attributes.focusable = true;
+    node->intrinsic_size.height = edit_tbuf_visual_lines(tb);
+    node->intrinsic_set = true;
+
+    if (out_dirty != NULL) {
+        *out_dirty = dirty;
+    }
+    return dirty;
+}
+
+bool edit_ctx_editline(edit_ctx_t *ctx, const char *classname, edit_doc_t *doc) {
+    if (ctx == NULL || doc == NULL) {
+        return false;
+    }
+    bool dirty = false;
+    textarea_internal(ctx, classname == NULL ? "" : classname, true, doc, NULL, &dirty);
+    return dirty;
+}
+
+void edit_ctx_textarea(edit_ctx_t *ctx, const char *classname, edit_shared_tbuf_t *shared) {
+    if (ctx == NULL) {
+        return;
+    }
+    textarea_internal(ctx, classname == NULL ? "" : classname, false, NULL, shared, NULL);
 }

@@ -72,7 +72,8 @@ typedef struct edit_tnode {
     struct edit_tnode *child_last;
     size_t child_count;
     edit_node_attr_t attributes;
-    // Content kinds: 0 none, 1 table, 2 scrollarea, 3 text, 4 modal.
+    // Content kinds: 0 none, 1 table, 2 scrollarea, 3 text, 4 modal,
+    // 5 textarea.
     int content_kind;
     // Text content (arena storage, label builders).
     const char *text_ptr;
@@ -84,6 +85,15 @@ typedef struct edit_tnode {
     edit_overflow_t text_overflow;
     // Modal title (arena storage, NULL when none/empty).
     const char *modal_title;
+    // Textarea content (buffer borrowed, state retained per node id).
+    void *ta_buffer; // edit_shared_tbuf_t*, borrowed
+    edit_point_t ta_scroll;
+    int32_t ta_drag_start;
+    int32_t ta_xmax;
+    int32_t ta_thumb;
+    int32_t ta_preferred;
+    bool ta_single_line;
+    bool ta_has_focus;
     // Table: column widths (arena vec) + cell gap.
     int32_t *table_columns;
     size_t table_ncols;

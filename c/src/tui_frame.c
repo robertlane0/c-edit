@@ -96,6 +96,10 @@ void edit_tui_destroy(edit_tui_t *t) {
     edit_nodemap_destroy(&t->prev_map);
     edit_tree_destroy(&t->prev_tree);
     edit_fb_destroy(&t->framebuffer);
+    for (size_t i = 0; i < t->tbuf_cache_len; ++i) {
+        edit_shared_release(t->tbuf_cache[i].editor);
+    }
+    free(t->tbuf_cache);
     edit_arena_destroy(&t->arenas[0]);
     edit_arena_destroy(&t->arenas[1]);
     free(t->mouse_down_path);

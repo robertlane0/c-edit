@@ -140,10 +140,11 @@ bool edit_tbuf_set_tab_size(edit_tbuf_t *t, int32_t width);
 bool edit_tbuf_indent_with_tabs(const edit_tbuf_t *t);
 void edit_tbuf_set_indent_tabs(edit_tbuf_t *t, bool enabled);
 void edit_tbuf_set_wrap(edit_tbuf_t *t, bool enabled);
+bool edit_tbuf_is_wrap(const edit_tbuf_t *t);
 
 // Minimal selection: anchors + ordered range (cursors).
 bool edit_tbuf_has_selection(const edit_tbuf_t *t);
-void edit_tbuf_clear_selection(edit_tbuf_t *t);
+bool edit_tbuf_clear_selection(edit_tbuf_t *t);
 void edit_tbuf_set_selection(edit_tbuf_t *t, edit_point_t beg, edit_point_t end);
 bool edit_tbuf_selection_range(edit_tbuf_t *t, edit_cursor_t *out_beg, edit_cursor_t *out_end);
 // Same with whole-line fallback when nothing is selected (copy/cut).
@@ -196,6 +197,16 @@ int edit_tbuf_find_replace_all(edit_tbuf_t *t, const char *pattern, edit_search_
 // Renders the viewport into fb; false on empty destination or OOM.
 bool edit_tbuf_render(edit_tbuf_t *t, edit_point_t origin, edit_rect_t destination, bool focused,
                       edit_fb_t *fb, int32_t *out_xmax);
+
+// Reference-counted TextBuffer for shared editor widgets.
+typedef struct {
+    edit_tbuf_t tbuf;
+    int32_t refs;
+} edit_shared_tbuf_t;
+
+int edit_shared_tbuf_create(edit_shared_tbuf_t **out, bool small);
+void edit_shared_retain(edit_shared_tbuf_t *s);
+void edit_shared_release(edit_shared_tbuf_t *s);
 
 #ifdef __cplusplus
 }

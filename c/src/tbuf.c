@@ -120,12 +120,14 @@ bool edit_tbuf_has_selection(const edit_tbuf_t *t) {
     return t != NULL && t->has_selection;
 }
 
-void edit_tbuf_clear_selection(edit_tbuf_t *t) {
+bool edit_tbuf_clear_selection(edit_tbuf_t *t) {
     if (t == NULL) {
-        return;
+        return false;
     }
+    bool had = t->has_selection;
     edit_point_t z = {0, 0};
     tbuf_set_selection(t, false, z, z);
+    return had;
 }
 
 void edit_tbuf_set_selection(edit_tbuf_t *t, edit_point_t beg, edit_point_t end) {
@@ -473,6 +475,10 @@ void edit_tbuf_set_wrap(edit_tbuf_t *t, bool enabled) {
     t->wrap_enabled = enabled;
     t->width = 0;
     edit_tbuf_make_visible(t);
+}
+
+bool edit_tbuf_is_wrap(const edit_tbuf_t *t) {
+    return t != NULL && t->wrap_enabled;
 }
 
 void tbuf_reflow(edit_tbuf_t *t, bool force) {
