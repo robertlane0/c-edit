@@ -104,15 +104,24 @@ uint32_t edit_tui_contrasted(edit_tui_t *t, uint32_t color);
 const uint8_t *edit_tui_clipboard(const edit_tui_t *t, size_t *out_len);
 uint32_t edit_tui_clipboard_gen(const edit_tui_t *t);
 void edit_tui_set_clipboard(edit_tui_t *t, const uint8_t *data, size_t len);
+// Modifier key names for shortcut hints (borrowed pointers, defaults Ctrl/Alt/Shift).
+void edit_tui_set_modifiers(edit_tui_t *t, const char *ctrl, const char *alt, const char *shift);
 // Redraw until false.
 bool edit_tui_needs_settling(edit_tui_t *t);
 // Focus helpers for widgets.
 bool edit_tui_is_focused(const edit_tui_t *t, uint64_t id);
 void edit_tui_steal_focus(edit_tui_t *t, edit_tnode_t *node);
+// Pops focus toward the root (cf. Rust pop_focusable_node); true if changed.
+bool edit_tui_pop_focusable(edit_tui_t *t, size_t pop_min);
 
 // Textarea/editline widgets (cf. Rust Context::textarea/editline).
 // Editline syncs a caller doc; returns true if contents changed.
 bool edit_ctx_editline(edit_ctx_t *ctx, const char *classname, edit_doc_t *doc);
+// String editline: retained per-node buffer synced with a caller byte
+// buffer (*pbuf/*plen, grown with realloc up to caller-managed *pcap).
+// Returns true if the caller buffer changed.
+bool edit_ctx_editline_str(edit_ctx_t *ctx, const char *classname, char **pbuf, size_t *plen,
+                           size_t *pcap);
 void edit_ctx_textarea(edit_ctx_t *ctx, const char *classname, edit_shared_tbuf_t *shared);
 
 // Context block + attribute builders (cf. Rust Context widget fns).
@@ -133,6 +142,8 @@ void edit_ctx_attr_reverse(edit_ctx_t *ctx);
 bool edit_ctx_consume_shortcut(edit_ctx_t *ctx, uint32_t shortcut);
 bool edit_ctx_keyboard_input(const edit_ctx_t *ctx, uint32_t *out_key);
 void edit_ctx_set_consumed(edit_ctx_t *ctx);
+void edit_ctx_needs_rerender(edit_ctx_t *ctx);
+void edit_ctx_toss_focus_up(edit_ctx_t *ctx);
 bool edit_ctx_was_mouse_down(edit_ctx_t *ctx);
 bool edit_ctx_contains_mouse_down(edit_ctx_t *ctx);
 bool edit_ctx_is_focused(edit_ctx_t *ctx);
@@ -168,6 +179,23 @@ void edit_ctx_list_end(edit_ctx_t *ctx);
 void edit_ctx_scrollarea_begin(edit_ctx_t *ctx, const char *classname, edit_size_t intrinsic);
 void edit_ctx_scrollarea_scroll_to(edit_ctx_t *ctx, edit_point_t pos);
 void edit_ctx_scrollarea_end(edit_ctx_t *ctx);
+
+// Menubar + menus (cf. Rust Context::menubar_*).
+void edit_ctx_menubar_begin(edit_ctx_t *ctx);
+// Accelerator is an uppercase letter (0 = none). Returns true if open.
+bool edit_ctx_menubar_menu_begin(edit_ctx_t *ctx, const char *text, char accelerator);
+// Shortcut 0 = none; returns true if activated.
+bool edit_ctx_menubar_menu_button(edit_ctx_t *ctx, const char *text, char accelerator,
+                                  uint32_t shortcut);
+bool edit_ctx_menubar_menu_checkbox(edit_ctx_t *ctx, const char *text, char accelerator,
+                                    uint32_t shortcut, bool checked);
+void edit_ctx_menubar_menu_end(edit_ctx_t *ctx);
+void edit_ctx_menubar_end(edit_ctx_t *ctx);
+
+// Context clipboard (cf. Rust Context::clipboard/set_clipboard/clipboard_generation).
+size_t edit_ctx_clipboard(edit_ctx_t *ctx, const uint8_t **out);
+uint32_t edit_ctx_clipboard_gen(edit_ctx_t *ctx);
+void edit_ctx_set_clipboard(edit_ctx_t *ctx, const uint8_t *data, size_t len);
 
 // Node render pass (draws the adopted tree into the framebuffer).
 void edit_tui_draw(edit_tui_t *t);

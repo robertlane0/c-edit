@@ -1562,3 +1562,357 @@ void edit_ctx_scrollarea_end(edit_ctx_t *ctx) {
         }
     }
 }
+
+// Context clipboard passthroughs.
+size_t edit_ctx_clipboard(edit_ctx_t *ctx, const uint8_t **out) {
+    if (out != NULL) {
+        *out = NULL;
+    }
+    if (ctx == NULL || ctx->tui == NULL) {
+        return 0;
+    }
+    size_t len = 0;
+    const uint8_t *ptr = edit_tui_clipboard(ctx->tui, &len);
+    if (out != NULL) {
+        *out = ptr;
+    }
+    return len;
+}
+
+uint32_t edit_ctx_clipboard_gen(edit_ctx_t *ctx) {
+    if (ctx == NULL || ctx->tui == NULL) {
+        return 0;
+    }
+    return edit_tui_clipboard_gen(ctx->tui);
+}
+
+void edit_ctx_set_clipboard(edit_ctx_t *ctx, const uint8_t *data, size_t len) {
+    if (ctx == NULL || ctx->tui == NULL || data == NULL || len == 0) {
+        return;
+    }
+    edit_tui_set_clipboard(ctx->tui, data, len);
+    edit_ctx_needs_rerender(ctx);
+}
+
+// Menubar + menus (cf. Rust Context::menubar_*).
+void edit_ctx_menubar_begin(edit_ctx_t *ctx) {
+    if (ctx == NULL) {
+        return;
+    }
+    edit_ctx_table_begin(ctx, "menubar");
+    edit_ctx_attr_focus_well(ctx);
+    edit_ctx_table_next_row(ctx);
+}
+
+// Renders the menu/menu-item label with the accelerator underlined.
+// checked < 0: no checkbox prefix; else "checked ?".
+
+static void menubar_label(edit_ctx_t *ctx, const char *text, char accelerator, int checked) {
+    const char *label = text == NULL ? "" : text;
+    size_t len = strlen(label);
+    size_t off = len;
+    if (accelerator >= 'A' && accelerator <= 'Z') {
+        for (size_t i = 0; i < len; ++i) {
+            if (label[i] == accelerator) {
+                off = i;
+                break;
+            }
+            if (off == len && (label[i] & ~0x20) == accelerator) {
+                off = i;
+            }
+        }
+    }
+    edit_ctx_styled_begin(ctx, "label");
+    if (checked >= 0) {
+        // "▣ " checked, two spaces unchecked (mirrors Rust).
+        edit_ctx_styled_add(ctx, checked != 0 ? "▣ " : "  ", checked != 0 ? 4 : 2);
+    }
+    if (off < len) {
+        edit_ctx_styled_add(ctx, label, off);
+        edit_ctx_styled_attr(ctx, EDIT_FB_ATTR_UNDERLINED);
+        edit_ctx_styled_add(ctx, label + off, 1);
+        edit_ctx_styled_attr(ctx, EDIT_FB_ATTR_NONE);
+        edit_ctx_styled_add(ctx, label + off + 1, len - off - 1);
+    } else {
+        edit_ctx_styled_add(ctx, label, len);
+        if (accelerator != 0) {
+            edit_ctx_styled_add(ctx, "(", 1);
+            edit_ctx_styled_attr(ctx, EDIT_FB_ATTR_UNDERLINED);
+            char acc[2] = {accelerator, '\0'};
+            edit_ctx_styled_add(ctx, acc, 1);
+            edit_ctx_styled_attr(ctx, EDIT_FB_ATTR_NONE);
+            edit_ctx_styled_add(ctx, ")", 1);
+        }
+    }
+    edit_ctx_styled_end(ctx);
+    edit_rect_t pad = {0, 0, 2, 0};
+    edit_ctx_attr_padding(ctx, pad);
+}
+
+static void menubar_shortcut(edit_ctx_t *ctx, uint32_t shortcut) {
+    unsigned char letter = (unsigned char)(shortcut & 0xFFU);
+    if (letter >= 'A' && letter <= 'Z') {
+        // "Ctrl+Alt+Shift+X" with localized modifier names.
+        char buf[64];
+        size_t pos = 0;
+        const char *mods[3] = {ctx->tui->mod_ctrl, ctx->tui->mod_alt, ctx->tui->mod_shift};
+        uint32_t bits[3] = {EDIT_KBMOD_CTRL, EDIT_KBMOD_ALT, EDIT_KBMOD_SHIFT};
+        for (int i = 0; i < 3; ++i) {
+            if ((shortcut & bits[i]) != 0 && mods[i] != NULL) {
+                size_t mlen = strlen(mods[i]);
+                if (pos + mlen + 1 < sizeof buf) {
+                    memcpy(buf + pos, mods[i], mlen);
+                    pos += mlen;
+                    buf[pos++] = '+';
+                }
+            }
+        }
+        if (pos + 1 < sizeof buf) {
+            buf[pos++] = (char)letter;
+        }
+        buf[pos < sizeof buf ? pos : sizeof buf - 1] = '\0';
+        edit_ctx_label(ctx, "shortcut", buf);
+    } else {
+        edit_ctx_block_begin(ctx, "shortcut");
+        edit_ctx_block_end(ctx);
+    }
+    edit_rect_t pad = {0, 0, 2, 0};
+    edit_ctx_attr_padding(ctx, pad);
+}
+
+bool edit_ctx_menubar_menu_begin(edit_ctx_t *ctx, const char *text, char accelerator) {
+    if (ctx == NULL) {
+        return false;
+    }
+    edit_tnode_t *cur = ctx->tree.current_node;
+    edit_ctx_id_mixin(ctx, (uint64_t)(cur != NULL ? cur->child_count : 0));
+    menubar_label(ctx, text, accelerator, -1);
+    if (ctx->tree.last_node != NULL) {
+        ctx->tree.last_node->attributes.focusable = true;
+    }
+    edit_rect_t pad = {1, 0, 1, 0};
+    edit_ctx_attr_padding(ctx, pad);
+
+    bool contains = edit_ctx_contains_focus(ctx);
+    uint32_t alt_key = 0;
+    if (accelerator >= 'A' && accelerator <= 'Z') {
+        alt_key = (uint32_t)EDIT_KBMOD_ALT | (uint32_t)(unsigned char)accelerator;
+    }
+    bool kb_focus = !contains && alt_key != 0 && edit_ctx_consume_shortcut(ctx, alt_key);
+    if (!contains && !kb_focus) {
+        return false;
+    }
+    edit_ctx_attr_bg(ctx, ctx->tui->floater_bg);
+    edit_ctx_attr_fg(ctx, ctx->tui->floater_fg);
+    if (edit_ctx_is_focused(ctx)) {
+        uint32_t green = edit_tui_indexed(ctx->tui, EDIT_FB_GREEN);
+        edit_ctx_attr_bg(ctx, green);
+        edit_ctx_attr_fg(ctx, edit_tui_contrasted(ctx->tui, green));
+    }
+    cur = ctx->tree.current_node;
+    edit_ctx_id_mixin(ctx, (uint64_t)(cur != NULL ? cur->child_count : 0));
+    edit_ctx_table_begin(ctx, "flyout");
+    edit_ctx_attr_float(ctx, 0, 0.0f, 0.0f, 0.0f, 1.0f);
+    edit_ctx_attr_border(ctx);
+    edit_ctx_attr_focus_well(ctx);
+    if (kb_focus) {
+        edit_ctx_steal_focus(ctx);
+    }
+    return true;
+}
+
+bool edit_ctx_menubar_menu_checkbox(edit_ctx_t *ctx, const char *text, char accelerator,
+                                    uint32_t shortcut, bool checked) {
+    if (ctx == NULL) {
+        return false;
+    }
+    edit_ctx_table_next_row(ctx);
+    if (ctx->tree.last_node != NULL) {
+        ctx->tree.last_node->attributes.focusable = true;
+    }
+    // First row? Steal focus (current node is the new row).
+    if (ctx->tree.current_node != NULL && ctx->tree.current_node->sib_prev == NULL) {
+        edit_ctx_inherit_focus(ctx);
+    }
+    if (edit_ctx_is_focused(ctx)) {
+        uint32_t green = edit_tui_indexed(ctx->tui, EDIT_FB_GREEN);
+        edit_ctx_attr_bg(ctx, green);
+        edit_ctx_attr_fg(ctx, edit_tui_contrasted(ctx->tui, green));
+    }
+    uint32_t acc_key = 0;
+    if (accelerator >= 'A' && accelerator <= 'Z') {
+        acc_key = (uint32_t)(unsigned char)accelerator;
+    }
+    // button_activated also matches mouse/RETURN/SPACE on the focused row.
+    bool clicked =
+        button_activated(ctx) || (acc_key != 0 && edit_ctx_consume_shortcut(ctx, acc_key));
+    menubar_label(ctx, text, accelerator, checked ? 1 : 0);
+    menubar_shortcut(ctx, shortcut);
+    if (clicked) {
+        edit_ctx_needs_rerender(ctx);
+        // Back to the root (Rust clean_node_path; end() refills with root).
+        ctx->tui->focus_len = 0;
+    }
+    return clicked;
+}
+
+bool edit_ctx_menubar_menu_button(edit_ctx_t *ctx, const char *text, char accelerator,
+                                  uint32_t shortcut) {
+    return edit_ctx_menubar_menu_checkbox(ctx, text, accelerator, shortcut, false);
+}
+
+void edit_ctx_menubar_menu_end(edit_ctx_t *ctx) {
+    if (ctx == NULL) {
+        return;
+    }
+    edit_ctx_table_end(ctx);
+    if (ctx->consumed || !ctx->has_key) {
+        return;
+    }
+    uint32_t key = ctx->key;
+    if (key == (uint32_t)EDIT_VK_UP || key == (uint32_t)EDIT_VK_DOWN) {
+        edit_tnode_t *flyout = ctx->tree.last_node;
+        uint64_t parent_id = 0;
+        if (flyout != NULL && flyout->parent != NULL) {
+            parent_id = flyout->parent->id;
+        }
+        if (parent_id != 0 && edit_tui_is_focused(ctx->tui, parent_id)) {
+            edit_tnode_t *target = NULL;
+            if (flyout != NULL) {
+                target = key == (uint32_t)EDIT_VK_UP ? flyout->child_last : flyout->child_first;
+            }
+            if (target != NULL && !edit_tui_is_focused(ctx->tui, target->id)) {
+                edit_tui_steal_focus(ctx->tui, target);
+                ctx->needs_settling = true;
+            }
+            ctx->consumed = true;
+        }
+    } else if (key == (uint32_t)EDIT_VK_ESCAPE || key == (uint32_t)EDIT_VK_LEFT ||
+               key == (uint32_t)EDIT_VK_RIGHT) {
+        if (edit_ctx_contains_focus(ctx)) {
+            if (key == (uint32_t)EDIT_VK_ESCAPE) {
+                edit_ctx_needs_rerender(ctx);
+                ctx->consumed = true;
+                ctx->tui->focus_len = 0;
+            } else if (!edit_ctx_is_focused(ctx)) {
+                if (edit_tui_pop_focusable(ctx->tui, 2)) {
+                    ctx->needs_settling = true;
+                }
+            }
+        }
+    }
+}
+
+void edit_ctx_menubar_end(edit_ctx_t *ctx) {
+    if (ctx == NULL) {
+        return;
+    }
+    edit_ctx_table_end(ctx);
+}
+
+// Growable byte buffer doc for string editline sync.
+typedef struct {
+    uint8_t *ptr;
+    size_t len;
+    size_t cap;
+} strbuf_t;
+
+static size_t strbuf_len(const void *vctx) {
+    const strbuf_t *s = (const strbuf_t *)vctx;
+    return s == NULL ? 0 : s->len;
+}
+
+static void strbuf_read(const void *vctx, size_t off, const uint8_t **out_ptr, size_t *out_len) {
+    const strbuf_t *s = (const strbuf_t *)vctx;
+    if (out_ptr != NULL) {
+        *out_ptr = NULL;
+    }
+    if (out_len != NULL) {
+        *out_len = 0;
+    }
+    if (s == NULL || s->ptr == NULL || off >= s->len) {
+        return;
+    }
+    if (out_ptr != NULL) {
+        *out_ptr = s->ptr + off;
+    }
+    if (out_len != NULL) {
+        *out_len = s->len - off;
+    }
+}
+
+static bool strbuf_replace(void *vctx, size_t beg, size_t end, const uint8_t *src, size_t n) {
+    strbuf_t *s = (strbuf_t *)vctx;
+    if (s == NULL) {
+        return false;
+    }
+    if (beg > s->len) {
+        beg = s->len;
+    }
+    if (end > s->len) {
+        end = s->len;
+    }
+    if (end < beg) {
+        end = beg;
+    }
+    size_t tail = s->len - end;
+    size_t need = beg + n + tail;
+    if (need > s->cap) {
+        size_t grown = s->cap != 0 ? s->cap : 32;
+        while (grown < need) {
+            if (grown > (size_t)-1 / 2) {
+                grown = need;
+                break;
+            }
+            grown *= 2;
+        }
+        uint8_t *nb = (uint8_t *)realloc(s->ptr, grown);
+        if (nb == NULL) {
+            return false;
+        }
+        s->ptr = nb;
+        s->cap = grown;
+    }
+    memmove(s->ptr + beg + n, s->ptr + end, tail);
+    if (n > 0) {
+        if (src == NULL) {
+            return false;
+        }
+        memcpy(s->ptr + beg, src, n);
+    }
+    s->len = need;
+    return true;
+}
+
+bool edit_ctx_editline_str(edit_ctx_t *ctx, const char *classname, char **pbuf, size_t *plen,
+                           size_t *pcap) {
+    if (ctx == NULL || pbuf == NULL || plen == NULL || pcap == NULL) {
+        return false;
+    }
+    // Sync the field buffer from the caller bytes (no-op when equal).
+    // Note: textarea_internal also saves dirty text back through this doc,
+    // so the buffer below is adopted back into the caller afterwards.
+    strbuf_t cur = {(uint8_t *)*pbuf, *pbuf == NULL ? 0 : *plen, *pbuf == NULL ? 0 : *pcap};
+    edit_doc_t indoc = {&cur, strbuf_len, strbuf_read, strbuf_read, strbuf_replace};
+    bool dirty =
+        textarea_internal(ctx, classname == NULL ? "" : classname, true, &indoc, NULL, NULL);
+    *pbuf = (char *)cur.ptr;
+    *plen = cur.len;
+    *pcap = cur.cap;
+    if (*pbuf != NULL) {
+        // Keep NUL termination for C-string use.
+        if (cur.len == (size_t)-1) {
+            return false;
+        }
+        if (cur.len + 1 > cur.cap) {
+            char *nb = (char *)realloc(*pbuf, cur.len + 1);
+            if (nb == NULL) {
+                return false;
+            }
+            *pbuf = nb;
+            *pcap = cur.len + 1;
+        }
+        (*pbuf)[cur.len] = '\0';
+    }
+    return dirty;
+}

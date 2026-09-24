@@ -175,6 +175,13 @@ static bool pop_focusable(edit_tui_t *t, size_t pop_min) {
     return before != after;
 }
 
+bool edit_tui_pop_focusable(edit_tui_t *t, size_t pop_min) {
+    if (t == NULL) {
+        return false;
+    }
+    return pop_focusable(t, pop_min);
+}
+
 typedef struct {
     edit_tnode_t *next;
     edit_tnode_t *root;
@@ -461,12 +468,44 @@ void edit_tui_steal_focus(edit_tui_t *t, edit_tnode_t *node) {
     }
 }
 
+void edit_tui_set_modifiers(edit_tui_t *t, const char *ctrl, const char *alt, const char *shift) {
+    if (t == NULL) {
+        return;
+    }
+    // Borrowed pointers; defaults are static strings.
+    if (ctrl != NULL) {
+        t->mod_ctrl = ctrl;
+    }
+    if (alt != NULL) {
+        t->mod_alt = alt;
+    }
+    if (shift != NULL) {
+        t->mod_shift = shift;
+    }
+}
+
+void edit_ctx_toss_focus_up(edit_ctx_t *ctx) {
+    if (ctx == NULL || ctx->tui == NULL) {
+        return;
+    }
+    if (edit_tui_pop_focusable(ctx->tui, 1)) {
+        ctx->needs_settling = true;
+    }
+}
+
+void edit_ctx_needs_rerender(edit_ctx_t *ctx) {
+    if (ctx == NULL || ctx->tui == NULL) {
+        return;
+    }
+    assert(ctx->tui->settling_have < 15 && "rerender deadlock?");
+    ctx->needs_settling = true;
+}
+
 void edit_tui_end(edit_tui_t *t, edit_ctx_t *ctx) {
     if (t == NULL || ctx == NULL) {
         return;
     }
-    assert(ctx->tree.current_node == NULL
-           || ctx->tree.current_node->stack_parent == NULL);
+    assert(ctx->tree.current_node == NULL || ctx->tree.current_node->stack_parent == NULL);
     // Keep modal focus inside the modal subtree.
     if (ctx->last_modal != NULL && !is_subtree_focused(t, ctx->last_modal)) {
         edit_tui_steal_focus(t, ctx->last_modal);
