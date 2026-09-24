@@ -1952,16 +1952,26 @@ int edit_app_handle_args(edit_app_t *app, int argc, char **argv, bool *out_early
             return 0;
         }
         if (strcmp(arg, "-") != 0) {
-            // cwd.join(arg) then normalize (cf. Rust handle_args).
+            // cwd.join(arg) like Rust Path::join: absolute args replace cwd.
             size_t al = strlen(arg);
-            size_t cl = strlen(cwd);
-            char *joined = (char *)malloc(cl + 1 + al + 1);
+            char *joined = NULL;
+            if (al > 0 && arg[0] == '/') {
+                joined = (char *)malloc(al + 1);
+                if (joined != NULL) {
+                    memcpy(joined, arg, al + 1);
+                }
+            } else {
+                size_t cl = strlen(cwd);
+                joined = (char *)malloc(cl + 1 + al + 1);
+                if (joined != NULL) {
+                    memcpy(joined, cwd, cl);
+                    joined[cl] = '/';
+                    memcpy(joined + cl + 1, arg, al + 1);
+                }
+            }
             if (joined == NULL) {
                 return -1;
             }
-            memcpy(joined, cwd, cl);
-            joined[cl] = '/';
-            memcpy(joined + cl + 1, arg, al + 1);
             size_t need = edit_path_normalize(NULL, 0, joined);
             owned_path = (char *)malloc(need + 1);
             if (owned_path == NULL) {

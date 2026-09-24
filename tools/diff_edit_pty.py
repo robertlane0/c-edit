@@ -237,7 +237,7 @@ TAB = b"\t"
 
 
 class Session:
-    def __init__(self, argv, cols=80, rows=24):
+    def __init__(self, argv, cols=80, rows=24, cwd=None, stdin_data=None):
         self.master, slave = pty.openpty()
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
         env = dict(os.environ)
@@ -245,10 +245,26 @@ class Session:
         env.pop("LANG", None)
         env.pop("LC_ALL", None)
         env.pop("LANGUAGE", None)
+        stdin_target = slave
+        extra = None
+        if stdin_data is not None:
+            r, w = os.pipe()
+            os.write(w, stdin_data)
+            os.close(w)
+            extra = r
+            stdin_target = r
         self.proc = subprocess.Popen(
-            argv, stdin=slave, stdout=slave, stderr=slave, env=env, close_fds=True
+            argv,
+            stdin=stdin_target,
+            stdout=slave,
+            stderr=slave,
+            env=env,
+            close_fds=True,
+            cwd=cwd,
         )
         os.close(slave)
+        if extra is not None:
+            os.close(extra)
         self.buf = bytearray()
 
     def read_until(self, needle, timeout=8.0):
@@ -322,8 +338,8 @@ class Session:
             pass
 
 
-def run_scenario(binary, script, cols=80, rows=24):
-    s = Session([binary], cols=cols, rows=rows)
+def run_scenario(binary, script, cols=80, rows=24, argv=None, stdin_data=None, cwd=None):
+    s = Session([binary] + (argv or []), cols=cols, rows=rows, cwd=cwd, stdin_data=stdin_data)
     if not s.read_until(b"\x1b[c", 8.0):
         # help/version scenarios never query the terminal
         pass
@@ -411,7 +427,18 @@ SCENARIOS = {
     "many-docs": [CTRL_N, CTRL_N, CTRL_N, CTRL_P, b"\x1b[B", b"\r"],
     "undo-redo": [b"abc", CTRL_Z, CTRL_Z, b"x", b"\x1a", b"\r"],
     "cut-copy-paste": [b"abc", b"\x01", b"\x16", b"\x1a", b"\x1b", b"\x16"],
+    "stdin-pipe": [],
 }
+
+ALL_SCENARIOS = list(SCENARIOS) + [
+    "arg-help",
+    "arg-help-extra",
+    "arg-version",
+    "arg-file",
+    "arg-goto",
+    "arg-missing-file",
+    "arg-dash",
+]
 
 
 def normalize(data):
@@ -423,17 +450,57 @@ def normalize(data):
     return data
 
 
+ARGV_SCENARIOS = {
+    "arg-help": ["--help"],
+    "arg-help-extra": ["--help", "some-file.txt"],
+    "arg-version": ["-v"],
+    "arg-file": ["sample.txt"],
+    "arg-goto": ["sample.txt:3:2"],
+    "arg-missing-file": ["definitely-missing.txt"],
+    "arg-dash": ["-"],
+}
+
+# A scratch file used by the argv scenarios (absolute paths differ per run, so
+# the harness compares both editors against the same file).
+SCRATCH_DIR = os.path.join("/tmp", "edit_diff_scratch")
+
+
+def ensure_scratch():
+    os.makedirs(SCRATCH_DIR, exist_ok=True)
+    path = os.path.join(SCRATCH_DIR, "sample.txt")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("alpha\nbeta\ngamma\ndelta\nepsilon\n")
+    return path
+
+
 def main():
-    names = sys.argv[1:] or list(SCENARIOS)
+    names = sys.argv[1:] or ALL_SCENARIOS
+    ensure_scratch()
     failures = 0
     for name in names:
-        if name not in SCENARIOS:
+        if name not in SCENARIOS and name not in ARGV_SCENARIOS:
             print(f"unknown scenario {name}")
             failures += 1
             continue
-        script = SCENARIOS[name]
-        rust_out, rust_rc = run_scenario(RUST_BIN, script)
-        c_out, c_rc = run_scenario(C_BIN, script)
+        argv = None
+        stdin_data = None
+        if name in ARGV_SCENARIOS:
+            argv = list(ARGV_SCENARIOS[name])
+            if name == "arg-file":
+                argv = [os.path.join(SCRATCH_DIR, "sample.txt")]
+            elif name == "arg-goto":
+                argv = [os.path.join(SCRATCH_DIR, "sample.txt") + ":3:2"]
+            elif name == "arg-missing-file":
+                argv = [os.path.join(SCRATCH_DIR, "definitely-missing.txt")]
+        if name == "stdin-pipe":
+            stdin_data = b"from stdin\nsecond line\n"
+        script = SCENARIOS.get(name, [])
+        rust_out, rust_rc = run_scenario(
+            RUST_BIN, script, argv=argv, stdin_data=stdin_data, cwd=SCRATCH_DIR
+        )
+        c_out, c_rc = run_scenario(
+            C_BIN, script, argv=argv, stdin_data=stdin_data, cwd=SCRATCH_DIR
+        )
         if name in SCREEN_COMPARE:
             rs, cs = Screen(), Screen()
             rs.feed(rust_out)
