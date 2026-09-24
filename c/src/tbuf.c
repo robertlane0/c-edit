@@ -468,8 +468,13 @@ void edit_tbuf_set_indent_tabs(edit_tbuf_t *t, bool enabled) {
     }
 }
 
-void edit_tbuf_set_wrap(edit_tbuf_t *t, bool enabled) {
-    if (t == NULL || t->wrap_enabled == enabled) {
+void edit_tbuf_set_line_highlight(edit_tbuf_t *t, bool enabled) {
+    if (t != NULL) {
+        t->line_highlight = enabled;
+    }
+}
+
+void edit_tbuf_set_wrap(edit_tbuf_t *t, bool enabled) {    if (t == NULL || t->wrap_enabled == enabled) {
         return;
     }
     t->wrap_enabled = enabled;

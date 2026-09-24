@@ -359,8 +359,7 @@ bool edit_tty_stdin_redirected(void) {
     return s_state.stdin_fd != STDIN_FILENO;
 }
 
-bool edit_tty_file_id(int fd, uint64_t *out_dev, uint64_t *out_ino) {
-    struct stat st;
+bool edit_tty_file_id(int fd, uint64_t *out_dev, uint64_t *out_ino) {    struct stat st;
     if (fstat(fd, &st) != 0) {
         return false;
     }
@@ -371,6 +370,19 @@ bool edit_tty_file_id(int fd, uint64_t *out_dev, uint64_t *out_ino) {
         *out_ino = (uint64_t)st.st_ino;
     }
     return true;
+}
+
+bool edit_tty_file_id_at(const char *path, uint64_t *out_dev, uint64_t *out_ino) {
+    if (path == NULL) {
+        return false;
+    }
+    int fd = open(path, O_RDONLY | O_CLOEXEC);
+    if (fd < 0) {
+        return false;
+    }
+    bool ok = edit_tty_file_id(fd, out_dev, out_ino);
+    close(fd);
+    return ok;
 }
 
 size_t edit_tty_languages(char ***out) {

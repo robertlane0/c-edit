@@ -40,6 +40,8 @@ bool edit_tty_write(const uint8_t *text, size_t len);
 bool edit_tty_stdin_redirected(void);
 // fstat identity for a file descriptor.
 bool edit_tty_file_id(int fd, uint64_t *out_dev, uint64_t *out_ino);
+// Opens path read-only and reports its file id (cf. Rust file_id_at).
+bool edit_tty_file_id_at(const char *path, uint64_t *out_dev, uint64_t *out_ino);
 // First set env var among LANGUAGE/LC_ALL/LANG, split on ':'.
 // Returns malloc'd list (*out_n entries, caller frees each + array).
 size_t edit_tty_languages(char ***out);

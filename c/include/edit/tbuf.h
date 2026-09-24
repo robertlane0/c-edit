@@ -133,6 +133,7 @@ int32_t edit_tbuf_text_width(const edit_tbuf_t *t);
 void edit_tbuf_make_visible(edit_tbuf_t *t);
 bool edit_tbuf_take_visibility(edit_tbuf_t *t);
 void edit_tbuf_set_margin(edit_tbuf_t *t, bool enabled);
+void edit_tbuf_set_line_highlight(edit_tbuf_t *t, bool enabled);
 void edit_tbuf_set_ruler(edit_tbuf_t *t, int32_t column);
 bool edit_tbuf_set_width(edit_tbuf_t *t, int32_t width);
 int32_t edit_tbuf_tab_size(const edit_tbuf_t *t);
