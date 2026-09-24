@@ -1424,6 +1424,7 @@ static char *draw_file_picker_update_path(edit_app_t *app) {
     if (stat(norm, &st) == 0 && S_ISDIR(st.st_mode)) {
         new_dir = norm;
         new_name = dup_str("");
+        norm = NULL; // ownership moved to new_dir
     } else {
         const char *slash = strrchr(norm, '/');
         if (slash != NULL) {

@@ -101,12 +101,13 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
   (setup handshake, render, type, unsaved-changes prompt, clean exit,
   alt-screen restore), ASan/UBSan clean.
 - PTY differential: `tools/diff_edit_pty.py` drives `target/debug/edit` and
-  `build/edit` through 49 scenarios (startup, typing, UTF-8, paste, nav,
+  `build/edit` through 53 scenarios (startup, typing, UTF-8, paste, nav,
   search/replace, menus, save/quit prompts, document + file pickers, encoding
   and indentation pickers, mouse select/drag/scroll, resize, long lines, many
   lines, rapid keys, 20KB paste, wide glyphs, CLI args incl. `:line:col`,
-  redirected stdin) and compares raw VT byte streams: all byte-identical
-  (multi-chunk inputs compare by emulated screen).
+  redirected stdin, save/save-as/reopen with written-file comparison) and
+  compares raw VT byte streams: all byte-identical (multi-chunk inputs compare
+  by emulated screen; save scenarios also compare the written file bytes).
   Bugs found this way and fixed:
   - OSC title is appended after the frame output, not prepended.
   - `scrollarea_begin` must inherit focus onto its content block.
@@ -120,6 +121,8 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
     (`files[len-1..]`), so no observable reordering happens upstream.
   - `handle_args` must follow Rust `Path::join` semantics: an absolute
     argument replaces the cwd instead of being appended to it.
+  - File-picker path update must transfer ownership of the normalized path
+    when it is a directory (freed it twice otherwise: heap-use-after-free).
 - astring: invalid UTF-8 / split-codepoint args now rejected in every build
   (release included), fixing the previous NDEBUG unused-function failure.
 - Notable: upstream find_and_replace_all loops forever (stale ICU chunks

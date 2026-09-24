@@ -226,6 +226,7 @@ CTRL_Q = b"\x11"
 CTRL_N = b"\x0e"
 CTRL_O = b"\x0f"
 CTRL_P = b"\x10"
+CTRL_S = b"\x13"
 CTRL_F = b"\x06"
 CTRL_R = b"\x12"
 CTRL_V = b"\x16"
@@ -438,7 +439,24 @@ ALL_SCENARIOS = list(SCENARIOS) + [
     "arg-goto",
     "arg-missing-file",
     "arg-dash",
+    "file-save-new",
+    "file-save-existing",
+    "file-reopen",
+    "file-save-as-overwrite",
 ]
+
+# Scenarios that write files: each editor saves into its own name, the written
+# bytes are compared, and the name is normalized out of the terminal output.
+FILE_SCENARIOS = {
+    # Open a named path, type, then save-as with the same name (Enter, Enter).
+    "file-save-new": ([b"@open-existing", b"hello\rworld", CTRL_O, b"\r", b"\r"], "newfile.txt"),
+    # Open an existing file, type, Ctrl+S saves in place.
+    "file-save-existing": ([b"@open-existing", b"edited", CTRL_S], "existing.txt"),
+    # Open, type, save-as, exit, then reopen the same path.
+    "file-reopen": ([b"@open-existing", b"first", CTRL_O, b"\r", b"\r"], "reopen.txt"),
+    # Save-as onto the same document (overwrite warning path).
+    "file-save-as-overwrite": ([b"@open-existing", b"clobber", CTRL_O, b"\r", b"\r"], "overwrite.txt"),
+}
 
 
 def normalize(data):
@@ -473,17 +491,68 @@ def ensure_scratch():
     return path
 
 
+def run_file_scenario(binary, script, filename, tag):
+    """Runs a save-oriented scenario and returns (output, rc, file_bytes).
+
+    Both editors use the same file name (so the rendered layout matches) and
+    run sequentially: the file is removed after each run.
+    """
+    path = os.path.join(SCRATCH_DIR, filename)
+    if os.path.exists(path):
+        os.unlink(path)
+    if script and script[0] == b"@open-existing":
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("original\ncontent\n")
+        out, rc = run_scenario(binary, script[1:], argv=[path], cwd=SCRATCH_DIR)
+    else:
+        out, rc = run_scenario(binary, script, argv=[path], cwd=SCRATCH_DIR)
+    data = None
+    if os.path.exists(path):
+        with open(path, "rb") as f:
+            data = f.read()
+        os.unlink(path)
+    out = out.replace(path.encode(), b"<FILE>").replace(filename.encode(), b"<NAME>")
+    return out, rc, data
+
+
 def main():
     names = sys.argv[1:] or ALL_SCENARIOS
     ensure_scratch()
     failures = 0
     for name in names:
-        if name not in SCENARIOS and name not in ARGV_SCENARIOS:
+        if name not in SCENARIOS and name not in ARGV_SCENARIOS and name not in FILE_SCENARIOS:
             print(f"unknown scenario {name}")
             failures += 1
             continue
         argv = None
         stdin_data = None
+        if name in FILE_SCENARIOS:
+            fname = FILE_SCENARIOS[name][1]
+            rust_out, rust_rc, rust_file = run_file_scenario(
+                RUST_BIN, FILE_SCENARIOS[name][0], fname, "rust"
+            )
+            c_out, c_rc, c_file = run_file_scenario(C_BIN, FILE_SCENARIOS[name][0], fname, "c")
+            same = rust_out == c_out and rust_file == c_file
+            if not same:
+                if rust_file != c_file:
+                    print("  file bytes differ:")
+                    print("   rust:", repr((rust_file or b"")[:200]))
+                    print("   c   :", repr((c_file or b"")[:200]))
+                if rust_out != c_out:
+                    n = min(len(rust_out), len(c_out))
+                    i = 0
+                    while i < n and rust_out[i] == c_out[i]:
+                        i += 1
+                    lo = max(0, i - 60)
+                    print("  rust: " + repr(rust_out[lo : i + 90]))
+                    print("  c   : " + repr(c_out[lo : i + 90]))
+            status = "OK  " if same and rust_rc == c_rc else "DIFF"
+            failures += 0 if (same and rust_rc == c_rc) else 1
+            print(
+                f"[{status}] {name}: file={len(rust_file or b'')}B/{len(c_file or b'')}B "
+                f"out={len(rust_out)}B/{len(c_out)}B rc={rust_rc}/{c_rc}"
+            )
+            continue
         if name in ARGV_SCENARIOS:
             argv = list(ARGV_SCENARIOS[name])
             if name == "arg-file":
