@@ -1284,3 +1284,281 @@ void edit_ctx_textarea(edit_ctx_t *ctx, const char *classname, edit_shared_tbuf_
     }
     textarea_internal(ctx, classname == NULL ? "" : classname, false, NULL, shared, NULL);
 }
+
+void edit_ctx_list_begin(edit_ctx_t *ctx, const char *classname) {
+    if (ctx == NULL) {
+        return;
+    }
+    edit_ctx_block_begin(ctx, classname);
+    edit_tnode_t *node = ctx->tree.last_node;
+    if (node == NULL) {
+        return;
+    }
+    uint64_t selected = 0;
+    edit_tnode_t *prev = edit_nodemap_get(&ctx->tui->prev_map, node->id);
+    if (prev != NULL && prev->content_kind == 6) {
+        selected = prev->list_selected;
+    }
+    node->attributes.focusable = true;
+    node->attributes.focus_void = true;
+    node->content_kind = 6;
+    node->list_selected = selected;
+    node->list_selected_node = NULL;
+}
+
+void edit_ctx_styled_list_item_begin(edit_ctx_t *ctx) {
+    if (ctx == NULL || ctx->tree.current_node == NULL) {
+        return;
+    }
+    edit_ctx_id_mixin(ctx, (uint64_t)ctx->tree.current_node->child_count);
+    edit_ctx_styled_begin(ctx, "item");
+    edit_ctx_styled_add(ctx, "  ", 2);
+    if (ctx->tree.last_node != NULL) {
+        ctx->tree.last_node->attributes.focusable = true;
+    }
+}
+
+int edit_ctx_styled_list_item_end(edit_ctx_t *ctx, bool select) {
+    if (ctx == NULL) {
+        return 0;
+    }
+    edit_ctx_styled_end(ctx);
+    edit_tnode_t *list = ctx->tree.current_node;
+    if (list == NULL || list->content_kind != 6) {
+        return 0;
+    }
+    edit_tnode_t *item = ctx->tree.last_node;
+    bool before = list->list_selected == item->id;
+    bool focused = edit_ctx_is_focused(ctx);
+    bool now = before || (select && list->list_selected == 0) || focused;
+    if (now) {
+        list->list_selected_node = item;
+        if (!before) {
+            list->list_selected = item->id;
+            ctx->needs_settling = true;
+        }
+    }
+
+    bool clicked = !ctx->consumed && ctx->mouse_click == 2 && edit_ctx_was_mouse_down(ctx);
+    bool entered =
+        focused && before && !ctx->consumed && ctx->has_key && ctx->key == (uint32_t)EDIT_VK_RETURN;
+    bool activated = clicked || entered;
+    if (activated) {
+        ctx->consumed = true;
+    }
+    if (before && activated) {
+        return 2;
+    }
+    if (now && !before) {
+        return 1;
+    }
+    return 0;
+}
+
+int edit_ctx_list_item(edit_ctx_t *ctx, bool select, const char *text) {
+    if (ctx == NULL) {
+        return 0;
+    }
+    edit_ctx_styled_list_item_begin(ctx);
+    edit_ctx_styled_add(ctx, text == NULL ? "" : text, text == NULL ? 0 : strlen(text));
+    return edit_ctx_styled_list_item_end(ctx, select);
+}
+
+void edit_ctx_list_end(edit_ctx_t *ctx) {
+    if (ctx == NULL) {
+        return;
+    }
+    edit_ctx_block_end(ctx);
+    edit_tnode_t *list = ctx->tree.last_node;
+    if (list == NULL || list->content_kind != 6) {
+        return;
+    }
+    bool contains_focus = edit_ctx_contains_focus(ctx);
+    edit_tnode_t *selected_now = list->list_selected_node;
+    edit_tnode_t *selected_next = selected_now != NULL ? selected_now : list->child_first;
+    if (selected_next == NULL) {
+        return;
+    }
+    if (contains_focus && !ctx->consumed && ctx->has_key) {
+        edit_tnode_t *prev = edit_nodemap_get(&ctx->tui->prev_map, list->id);
+        if (prev != NULL && selected_now != NULL) {
+            bool consumed = true;
+            uint32_t key = ctx->key;
+            if (key == (uint32_t)EDIT_VK_PRIOR) {
+                selected_next = selected_now;
+                int32_t steps = prev->inner_clipped.bottom - prev->inner_clipped.top - 1;
+                for (int32_t i = 0; i < steps; ++i) {
+                    if (selected_next->sib_prev == NULL) {
+                        break;
+                    }
+                    selected_next = selected_next->sib_prev;
+                }
+            } else if (key == (uint32_t)EDIT_VK_NEXT) {
+                selected_next = selected_now;
+                int32_t steps = prev->inner_clipped.bottom - prev->inner_clipped.top - 1;
+                for (int32_t i = 0; i < steps; ++i) {
+                    if (selected_next->sib_next == NULL) {
+                        break;
+                    }
+                    selected_next = selected_next->sib_next;
+                }
+            } else if (key == (uint32_t)EDIT_VK_END) {
+                selected_next = list->child_last != NULL ? list->child_last : selected_next;
+            } else if (key == (uint32_t)EDIT_VK_HOME) {
+                selected_next = list->child_first != NULL ? list->child_first : selected_next;
+            } else if (key == (uint32_t)EDIT_VK_UP) {
+                edit_tnode_t *alt =
+                    selected_now->sib_prev != NULL ? selected_now->sib_prev : list->child_last;
+                selected_next = alt != NULL ? alt : selected_next;
+            } else if (key == (uint32_t)EDIT_VK_DOWN) {
+                edit_tnode_t *alt =
+                    selected_now->sib_next != NULL ? selected_now->sib_next : list->child_first;
+                selected_next = alt != NULL ? alt : selected_next;
+            } else {
+                consumed = false;
+            }
+            if (consumed) {
+                ctx->consumed = true;
+            }
+        }
+    }
+    if (selected_next != selected_now) {
+        list->list_selected_node = selected_next;
+    }
+    // Mark the selected item (replace leading spaces with '>').
+    if (selected_next->content_kind == 3 && selected_next->text_len > 0) {
+        // Arena text is writable within the frame (same arena, no realloc).
+        ((char *)selected_next->text_ptr)[0] = '>';
+    }
+    if (contains_focus) {
+        selected_next->attributes.bg = edit_tui_indexed(ctx->tui, EDIT_FB_GREEN);
+        selected_next->attributes.fg =
+            edit_tui_contrasted(ctx->tui, edit_tui_indexed(ctx->tui, EDIT_FB_GREEN));
+        edit_tui_steal_focus(ctx->tui, selected_next);
+    }
+}
+
+void edit_ctx_scrollarea_begin(edit_ctx_t *ctx, const char *classname, edit_size_t intrinsic) {
+    if (ctx == NULL) {
+        return;
+    }
+    edit_ctx_block_begin(ctx, classname);
+    edit_tnode_t *container = ctx->tree.last_node;
+    if (container == NULL) {
+        return;
+    }
+    container->content_kind = 2;
+    container->scroll_offset.x = INT32_MIN;
+    container->scroll_offset.y = INT32_MIN;
+    container->scroll_drag_start = INT32_MIN;
+    container->scroll_thumb = 0;
+    if (intrinsic.width > 0 || intrinsic.height > 0) {
+        container->intrinsic_size.width = intrinsic.width > 0 ? intrinsic.width : 0;
+        container->intrinsic_size.height = intrinsic.height > 0 ? intrinsic.height : 0;
+        container->intrinsic_set = true;
+    }
+    edit_ctx_block_begin(ctx, "content");
+    // Attribute tweaks apply to the outer container (restore current).
+    if (ctx->tree.last_node != NULL) {
+        ctx->tree.last_node = container;
+    }
+}
+
+void edit_ctx_scrollarea_scroll_to(edit_ctx_t *ctx, edit_point_t pos) {
+    if (ctx == NULL || ctx->tree.last_node == NULL) {
+        return;
+    }
+    edit_tnode_t *node = ctx->tree.last_node;
+    if (node->content_kind != 2) {
+        assert(false && "not a scrollarea");
+        return;
+    }
+    node->scroll_offset = pos;
+}
+
+void edit_ctx_scrollarea_end(edit_ctx_t *ctx) {
+    if (ctx == NULL) {
+        return;
+    }
+    edit_ctx_block_end(ctx); // content
+    edit_ctx_block_end(ctx); // container
+    edit_tnode_t *container = ctx->tree.last_node;
+    if (container == NULL || container->content_kind != 2) {
+        return;
+    }
+    uint64_t cid = container->id;
+    int32_t cdepth = (int32_t)container->depth;
+    edit_tnode_t *prev = edit_nodemap_get(&ctx->tui->prev_map, cid);
+    if (prev == NULL) {
+        return;
+    }
+    if (container->scroll_offset.x == INT32_MIN && container->scroll_offset.y == INT32_MIN &&
+        prev->content_kind == 2) {
+        container->scroll_offset = prev->scroll_offset;
+        container->scroll_drag_start = prev->scroll_drag_start;
+        container->scroll_thumb = prev->scroll_thumb;
+    }
+    if (ctx->consumed) {
+        return;
+    }
+    if (ctx->tui->mouse_state != EDIT_MOUSE_NONE) {
+        edit_rect_t crect = prev->inner;
+        if (ctx->tui->mouse_state == EDIT_MOUSE_LEFT) {
+            if (ctx->tui->mouse_is_drag) {
+                edit_rect_t track = {crect.right, crect.top, crect.right + 1, crect.bottom};
+                if (edit_rect_contains(track, ctx->tui->mouse_down_pos)) {
+                    if (container->scroll_drag_start == INT32_MIN) {
+                        container->scroll_drag_start = container->scroll_offset.y;
+                    }
+                    edit_tnode_t *content = prev->child_first;
+                    if (content != NULL) {
+                        int32_t content_h = content->inner.bottom - content->inner.top;
+                        int32_t track_h = track.bottom - track.top;
+                        int32_t scrollable = content_h - track_h;
+                        if (scrollable > 0) {
+                            int32_t trackable = track_h - container->scroll_thumb;
+                            int32_t dy = ctx->tui->mouse_pos.y - ctx->tui->mouse_down_pos.y;
+                            if (trackable > 0) {
+                                container->scroll_offset.y =
+                                    container->scroll_drag_start + (dy * scrollable) / trackable;
+                            }
+                        }
+                    }
+                    ctx->consumed = true;
+                }
+            }
+        } else if (ctx->tui->mouse_state == EDIT_MOUSE_RELEASE) {
+            container->scroll_drag_start = INT32_MIN;
+        } else if (ctx->tui->mouse_state == EDIT_MOUSE_SCROLL) {
+            if (edit_rect_contains(crect, ctx->tui->mouse_pos)) {
+                container->scroll_offset.x += ctx->scroll_delta.x;
+                container->scroll_offset.y += ctx->scroll_delta.y;
+                ctx->consumed = true;
+            }
+        }
+    } else {
+        // Keyboard scrolling when the container subtree is focused.
+        bool sub = false;
+        if ((size_t)cdepth < ctx->tui->focus_len) {
+            sub = ctx->tui->focus_path[cdepth] == cid;
+        }
+        if (sub && ctx->has_key) {
+            bool consumed = true;
+            int32_t h = prev->inner_clipped.bottom - prev->inner_clipped.top;
+            if (ctx->key == (uint32_t)EDIT_VK_PRIOR) {
+                container->scroll_offset.y -= h;
+            } else if (ctx->key == (uint32_t)EDIT_VK_NEXT) {
+                container->scroll_offset.y += h;
+            } else if (ctx->key == (uint32_t)EDIT_VK_END) {
+                container->scroll_offset.y = INT32_MAX;
+            } else if (ctx->key == (uint32_t)EDIT_VK_HOME) {
+                container->scroll_offset.y = 0;
+            } else {
+                consumed = false;
+            }
+            if (consumed) {
+                ctx->consumed = true;
+            }
+        }
+    }
+}

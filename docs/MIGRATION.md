@@ -85,11 +85,16 @@ Baseline: `edit` 1.0.0 fork of Microsoft Edit. Nightly Rust, 37 lib + 1 bin + 3 
 - tuiframe: 47 checks, resize/focus/mouse/click/clipboard flows, ASan/NDEBUG clean.
 - twidgets: 69 checks, labels/buttons/modal/table/attrs/shortcuts, ASan/NDEBUG clean.
 - ta: 22 checks, scripted typing/nav/undo/editline parity, ASan/NDEBUG clean.
+- tlist/trender: 34 checks, list/scrollarea/modal widgets + node render pass,
+  byte-exact VT (labels, styled spans, list click/arrows, modal), ASan/UBSan clean.
 - tty: 39 checks, PTY-backed modes/poll/resize/file-id/lang, ASan/NDEBUG clean.
 - Notable: upstream find_and_replace_all loops forever (stale ICU chunks
   after setUText); C refreshes the provider window on set_text and terminates.
 - Policy: public arg validation returns errors gracefully (tested in debug);
   asserts kept only for usage-discipline invariants (borrow order, tail-only shrink).
+- Known gap: `make release` (NDEBUG) fails on pre-existing `astring.c`
+  unused-function errors (`is_char_boundary`, `is_valid_utf8`, only used in
+  assert paths); debug/ASan/UBSan gates unaffected.
 - Gates: strict warnings, cppcheck, clang-format, `cargo +nightly test --lib` green (37).
 
 ## Baseline perf

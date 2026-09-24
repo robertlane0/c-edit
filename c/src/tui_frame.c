@@ -523,6 +523,7 @@ size_t edit_tui_render(edit_tui_t *t, const char **out) {
     if (edit_fb_flip(&t->framebuffer, t->size) != 0) {
         return 0;
     }
+    edit_tui_draw(t);
     return edit_fb_render(&t->framebuffer, out);
 }
 

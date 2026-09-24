@@ -11,9 +11,9 @@
 // Styled text chunk + overflow live here (tree content model).
 typedef enum {
     EDIT_OVF_CLIP,
-    EDIT_OVF_HEAD, // ellipsis first ("…tail")
+    EDIT_OVF_HEAD,   // ellipsis first ("…tail")
     EDIT_OVF_MIDDLE, // ellipsis inside ("he…lo")
-    EDIT_OVF_TAIL, // ellipsis last ("hea…")
+    EDIT_OVF_TAIL,   // ellipsis last ("hea…")
 } edit_overflow_t;
 
 typedef struct {
@@ -73,7 +73,7 @@ typedef struct edit_tnode {
     size_t child_count;
     edit_node_attr_t attributes;
     // Content kinds: 0 none, 1 table, 2 scrollarea, 3 text, 4 modal,
-    // 5 textarea.
+    // 5 textarea, 6 list.
     int content_kind;
     // Text content (arena storage, label builders).
     const char *text_ptr;
@@ -94,6 +94,9 @@ typedef struct edit_tnode {
     int32_t ta_preferred;
     bool ta_single_line;
     bool ta_has_focus;
+    // List content: selected id + selected node (borrowed).
+    uint64_t list_selected;
+    struct edit_tnode *list_selected_node;
     // Table: column widths (arena vec) + cell gap.
     int32_t *table_columns;
     size_t table_ncols;

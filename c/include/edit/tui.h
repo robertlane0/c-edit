@@ -158,6 +158,20 @@ void edit_ctx_set_overflow(edit_ctx_t *ctx, int overflow);
 bool edit_ctx_button(edit_ctx_t *ctx, const char *classname, const char *text);
 bool edit_ctx_checkbox(edit_ctx_t *ctx, const char *classname, const char *text, bool *checked);
 
+// List + scrollarea widgets.
+void edit_ctx_list_begin(edit_ctx_t *ctx, const char *classname);
+void edit_ctx_styled_list_item_begin(edit_ctx_t *ctx);
+// Returns 0 unchanged, 1 selected, 2 activated.
+int edit_ctx_styled_list_item_end(edit_ctx_t *ctx, bool select);
+int edit_ctx_list_item(edit_ctx_t *ctx, bool select, const char *text);
+void edit_ctx_list_end(edit_ctx_t *ctx);
+void edit_ctx_scrollarea_begin(edit_ctx_t *ctx, const char *classname, edit_size_t intrinsic);
+void edit_ctx_scrollarea_scroll_to(edit_ctx_t *ctx, edit_point_t pos);
+void edit_ctx_scrollarea_end(edit_ctx_t *ctx);
+
+// Node render pass (draws the adopted tree into the framebuffer).
+void edit_tui_draw(edit_tui_t *t);
+
 #ifdef __cplusplus
 }
 #endif
