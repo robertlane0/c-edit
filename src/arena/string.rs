@@ -17,8 +17,11 @@ pub struct ArenaString<'a> {
 
 impl<'a> ArenaString<'a> {
     /// Creates a new [`ArenaString`] in the given arena.
+    ///
+    /// Deliberately not `const`: `Vec::new_in` is only const-stable under the
+    /// `allocator_ext` gate, which does not exist on every nightly.
     #[must_use]
-    pub const fn new_in(arena: &'a Arena) -> Self {
+    pub fn new_in(arena: &'a Arena) -> Self {
         Self { vec: Vec::new_in(arena) }
     }
 
