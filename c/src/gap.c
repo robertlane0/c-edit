@@ -14,6 +14,13 @@
 #define GAP_LARGE_ALLOC ((size_t)64 * 1024)
 #define GAP_LARGE_GAP ((size_t)4 * 1024)
 
+// What a large gap reserves on a platform that cannot reserve
+// GAP_LARGE_RESERVE. Fixed rather than "whatever is left", so the document
+// buffer does not take a whole heap the rest of the program needs. Matches
+// EDIT_ARENA_TARGET_BYTES: both are a temporary workspace on a target whose
+// heap is a few mebibytes.
+#define GAP_TARGET_RESERVE ((size_t)1024 * 1024)
+
 #define GAP_SMALL_RESERVE ((size_t)128 * 1024)
 #define GAP_SMALL_ALLOC ((size_t)256)
 #define GAP_SMALL_GAP ((size_t)16)
@@ -37,9 +44,16 @@ int edit_gap_init(edit_gap_t *g, bool small) {
     g->heap = NULL;
     if (!small) {
         edit_error_t err;
+        // reserve is the buffer's ceiling, not a promise: every growth path
+        // already refuses past it, so a document is still editable when the
+        // reservation came in smaller. A target with a few mebibytes of heap
+        // cannot reserve 4 GiB, and it gets a fixed reserve rather than
+        // whatever is left, which would starve the rest of the program.
         if (!edit_vm_reserve(g->reserve, &g->text, &err)) {
-            (void)err;
-            return -1;
+            g->reserve = GAP_TARGET_RESERVE;
+            if (!edit_vm_reserve(g->reserve, &g->text, &err)) {
+                return -1;
+            }
         }
     }
     return 0;

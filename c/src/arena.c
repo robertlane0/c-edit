@@ -25,8 +25,18 @@ int edit_arena_init(edit_arena_t *a, size_t capacity) {
     uint8_t *base = NULL;
     edit_error_t err;
     if (!edit_vm_reserve(cap, &base, &err)) {
+        // capacity is the largest the arena may grow to, not a promise the
+        // platform can keep. A target with a few mebibytes of heap cannot
+        // reserve 512 MiB, and reserving "whatever is left" would let the
+        // first arena take the heap and starve every allocation after it, so
+        // a platform that cannot keep the cap gets a fixed small arena. A host
+        // with the address space keeps the cap and is unaffected.
         (void)err;
-        return -1;
+        cap = round_chunk(EDIT_ARENA_TARGET_BYTES);
+        if (!edit_vm_reserve(cap, &base, &err)) {
+            (void)err;
+            return -1;
+        }
     }
     a->base = base;
     a->capacity = cap;

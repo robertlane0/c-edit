@@ -11,6 +11,15 @@ extern "C" {
 
 #define EDIT_ARENA_CHUNK ((size_t)65536)
 
+// What an arena reserves on a platform that cannot reserve the capacity it was
+// asked for. An arena's capacity is a ceiling, not a promise, and a target
+// whose heap is a few mebibytes cannot reserve the hundreds of mebibytes the
+// call sites ask for. The figure is fixed rather than "whatever is left": the
+// first arena to ask would otherwise take the whole heap and leave the rest
+// of the program with none. An arena is a temporary workspace, so a mebibyte
+// is ample for the interactive work it holds.
+#define EDIT_ARENA_TARGET_BYTES ((size_t)1024 * 1024)
+
 // Bump allocator over lazily-committed VM (cf. Rust release::Arena).
 // Single-threaded; no destructors run; deallocate is a no-op.
 // Zero-init is a valid empty arena; destroy is safe on it.
